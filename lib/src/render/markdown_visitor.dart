@@ -244,6 +244,8 @@ class MarkdownPlusVisitor {
         );
       case 'input':
         return null;
+      case 'front_matter':
+        return null;
       case 'div':
         final classes = element.attributes['class'] ?? '';
         if (classes.contains('markdown-alert')) {
@@ -404,15 +406,29 @@ extension _AlertRendering on MarkdownPlusVisitor {
   InlineSpan _alert(md.Element element, String classes) {
     final type = classes
         .split(' ')
-        .firstWhere((c) => c.startsWith('markdown-alert-'), orElse: () => '')
-        .substring('markdown-alert-'.length);
+        .map(
+          (c) => c.startsWith('markdown-alert-')
+              ? c.substring('markdown-alert-'.length)
+              : '',
+        )
+        .firstWhere((t) => t.isNotEmpty, orElse: () => '');
+    // A malformed alert div without a known type renders as ordinary
+    // content instead of masquerading as a note.
+    if (!const {
+      'note',
+      'tip',
+      'important',
+      'warning',
+      'caution',
+    }.contains(type)) {
+      return visitChildren(element) ?? const TextSpan(text: '');
+    }
     final style = switch (type) {
       'note' => theme.alertNoteStyle,
       'tip' => theme.alertTipStyle,
       'important' => theme.alertImportantStyle,
       'warning' => theme.alertWarningStyle,
-      'caution' => theme.alertCautionStyle,
-      _ => theme.alertNoteStyle,
+      _ => theme.alertCautionStyle,
     };
     final title =
         element.children
@@ -445,10 +461,7 @@ extension _AlertRendering on MarkdownPlusVisitor {
 
   InlineSpan _footnoteRef(md.Element element) {
     final number = element.textContent.trim();
-    return TextSpan(
-      text: '[$number]',
-      style: (theme.footnoteRefStyle ?? theme.baseTextStyle).toTextStyle(),
-    );
+    return _withGlyphs(theme.footnoteRefStyle, TextSpan(text: '[$number]'));
   }
 
   InlineSpan _footnoteBlock(md.Element element) {

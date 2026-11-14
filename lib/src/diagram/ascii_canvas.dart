@@ -42,15 +42,6 @@ class AsciiCanvas {
     }
   }
 
-  /// Fills a rectangular area with a character.
-  void fill(int x, int y, int w, int h, String char, DiagramCellStyle style) {
-    for (var row = y; row < y + h; row++) {
-      for (var column = x; column < x + w; column++) {
-        put(column, row, char, style);
-      }
-    }
-  }
-
   /// Draws a box border. Corners vary by flavor: square, rounded, rhombus.
   void drawBox(
     int x,
@@ -136,12 +127,6 @@ class AsciiCanvas {
       DiagramDirection.down => '▼',
       DiagramDirection.up => '▲',
     };
-    put(x, y, char, style);
-  }
-
-  /// Replaces a cell with [char] unless it is blank — used to punch labels
-  /// through lines that pass behind them.
-  void overwrite(int x, int y, String char, DiagramCellStyle style) {
     put(x, y, char, style);
   }
 

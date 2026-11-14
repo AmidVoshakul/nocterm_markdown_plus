@@ -20,6 +20,7 @@ proof (popular terminal renderers, ~28k stars each).
 | D3 | Own superset visitor on the public nocterm API | Vendor core visitor / wrap core `MarkdownText` | Full control of slots + fidelity; no core-code fork to diff |
 | D4 | Themes: presets + custom (code/JSON) + brightness-adaptive | Presets only | Max theme coverage; nocterm core provides brightness detection |
 | D5 | MIT license | Apache-2.0 | Ecosystem is uniformly MIT; MIT deps; minimal friction |
+| D6 | Front matter: skip by default, `'front_matter'` builder tag | Styled metadata block (new theme slots) | It is app metadata, not prose; zero API growth, builders give opt-in rendering |
 
 ## 3. Key findings (Phase 0 spike)
 
@@ -113,6 +114,11 @@ highlighting adapter) ships in a single 0.1.0 release.
 
 ### Update log
 
+- **Front matter split (0.2.0):** `parseDocument` peels a leading
+  `---`…`---` YAML block into a `front_matter` element before the parser
+  runs; the visitor skips it and a per-tag builder can render it. A `---`
+  first line without a closer stays an ordinary horizontal rule.
+- **0.1.0 published on pub.dev** (repo: AmidVoshakul/nocterm_markdown_plus).
 - **Mermaid pipeline:** `mermaid` fences route through a self-contained
   rasterizer (`lib/src/diagram/`): a grid canvas with box-drawing
   primitives, scene walk over the diagram IR (nodes/edges/labels), and a

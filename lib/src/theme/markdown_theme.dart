@@ -938,27 +938,6 @@ Color _xterm256(Color color) {
   final g = nearestCube(color.green);
   final b = nearestCube(color.blue);
 
-  final ansi16 = <Color>[
-    Color(0x000000),
-    Color(0x800000),
-    Color(0x008000),
-    Color(0x808000),
-    Color(0x000080),
-    Color(0x800080),
-    Color(0x008080),
-    Color(0xc0c0c0),
-    Color(0x808080),
-    Color(0xff0000),
-    Color(0x00ff00),
-    Color(0xffff00),
-    Color(0x0000ff),
-    Color(0xff00ff),
-    Color(0x00ffff),
-    Color(0xffffff),
-  ];
-  final baseMatch = ansi16.indexWhere((c) => c == color);
-  if (baseMatch != -1) return Color(0xFF000000 | r << 16 | g << 8 | b);
-
   final gray = (color.red + color.green + color.blue) ~/ 3;
   final grayIndex = ((gray - 8) / 10).round().clamp(0, 23);
   final grayColor = Color.fromRGB(

@@ -1,3 +1,4 @@
+import 'package:nocterm/nocterm.dart' hide isEmpty, isNotEmpty;
 import 'package:nocterm_markdown_plus/nocterm_markdown_plus.dart';
 import 'package:test/test.dart';
 
@@ -25,6 +26,14 @@ void main() {
       for (final channel in channels) {
         expect([0, 95, 135, 175, 215, 255].contains(channel), isTrue);
       }
+    });
+    test('exact grays quantize onto the gray ramp', () {
+      // 0x808080 sits exactly on an xterm gray value; the quantizer must
+      // keep it instead of snapping to the color cube.
+      final theme = MarkdownThemes.nord.copyWith(
+        textStyle: MarkdownStyle(color: Color(0xFF808080)),
+      );
+      expect(theme.quantizedToAnsi256().textStyle!.color, Color(0xFF808080));
     });
   });
 }

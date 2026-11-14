@@ -1,14 +1,32 @@
 # nocterm_markdown_plus
 
+[![CI](https://github.com/AmidVoshakul/nocterm_markdown_plus/actions/workflows/ci.yml/badge.svg)](https://github.com/AmidVoshakul/nocterm_markdown_plus/actions/workflows/ci.yml)
+[![Release](https://github.com/AmidVoshakul/nocterm_markdown_plus/actions/workflows/release.yml/badge.svg)](https://github.com/AmidVoshakul/nocterm_markdown_plus/actions/workflows/release.yml)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Pub Version](https://img.shields.io/pub/v/nocterm_markdown_plus)](https://pub.dev/packages/nocterm_markdown_plus)
+[![pub points](https://img.shields.io/pub/points/nocterm_markdown_plus?logo=dart)](https://pub.dev/packages/nocterm_markdown_plus/score)
+[![Pub Monthly Downloads](https://img.shields.io/pub/dm/nocterm_markdown_plus?color=yellow)](https://pub.dev/packages/nocterm_markdown_plus/score)
+[![Dart](https://img.shields.io/badge/Language-Dart-0175C2?logo=dart)](https://dart.dev)
+
 Render themed markdown in your [nocterm](https://pub.dev/packages/nocterm) terminal app: 19
 curated themes, per-element style slots, styled tables, task lists, syntax-highlighted code
 blocks, and diff rendering — all out of the box.
 
-nocterm ships a basic `MarkdownText` with a single hardcoded stylesheet. Use this package
-when you want your markdown to look *designed*: colors that follow one theme, tables with
-real borders, and code blocks with backgrounds.
+nocterm ships a basic `MarkdownText` with a single hardcoded stylesheet. Drop in
+`MarkdownPlus` when you want your markdown to look *designed*: colors that follow one
+theme, tables with real borders, and code blocks with backgrounds.
 
-## Installation
+## 🚀 Getting Started
+
+Add the dependency:
+
+```yaml
+dependencies:
+  nocterm: ^0.9.0
+  nocterm_markdown_plus: ^0.1.1
+```
+
+Or from the command line:
 
 ```console
 dart pub add nocterm_markdown_plus
@@ -17,7 +35,9 @@ dart pub add nocterm_markdown_plus
 ## Render markdown
 
 Drop `MarkdownPlus` where you would put a `Text` widget. Give it a markdown string and a
-theme:
+theme, and you get headings, emphasis, inline code, links, blockquotes, lists (ordered,
+nested, task), tables, horizontal rules, and fenced code blocks — GFM tables and task
+lists work without extra flags:
 
 ```dart
 import 'package:nocterm/nocterm.dart';
@@ -44,13 +64,9 @@ final theme = MarkdownThemes.nord;
 }
 ```
 
-Everything markdown supports is rendered: headings, emphasis, inline code, links,
-blockquotes, lists (ordered, nested, task), tables, horizontal rules, and fenced code
-blocks. GFM tables and task lists work without extra flags.
-
-Tables go further than the basics: every row is separated by a rule, cell content keeps
-its inline markdown (write `**bold**` or `` `code` `` inside a cell), and the delimiter
-row controls alignment — `:---` left, `:---:` center, `---:` right:
+You can tune tables further than the basics: every row is separated by a rule, cell
+content keeps its inline markdown (write `**bold**` or `` `code` `` inside a cell), and
+the delimiter row controls alignment — `:---` left, `:---:` center, `---:` right:
 
 ```md
 | Feature | Status | Notes |
@@ -60,28 +76,28 @@ row controls alignment — `:---` left, `:---:` center, `---:` right:
 
 ## Pick a theme
 
-19 themes ship with the package. Pass one directly:
+You get 19 themes out of the box. Pass one directly:
 
 ```dart
 MarkdownPlus(text, theme: MarkdownThemes.catppuccinMocha);
 ```
 
 The dark gallery is: Catppuccin Mocha, Nord, Dracula, Tokyo Night, One Dark,
-Gruvbox Dark, Monokai, GitHub Dark, Ayu Dark, Solarized Dark, **Matrix**
-(phosphor green), and nocterm's own default. You can browse all of them in the
-bundled gallery:
+Gruvbox Dark, Monokai, GitHub Dark, Ayu Dark, Solarized Dark, **Matrix** (phosphor
+green), and nocterm's own default. The light gallery adds Catppuccin Latte, Solarized
+Light, GitHub Light, One Light, Ayu Light, and nocterm's light default; an `ascii`
+fallback renders literal markers (`**bold**`) with no color at all.
+
+You can browse all of them in the bundled gallery and switch with `←/→`:
 
 ```console
 dart run example/demo.dart
 ```
 
-Switch themes with `←/→`. The demo renders with every theme applied so you can compare
-them in your own terminal before choosing.
-
 ## Theme your own way
 
-Every markdown element has its own style slot. Copy a preset and override what you care
-about — the rest stays consistent:
+Every markdown element has its own style slot, so you can copy a preset and override only
+what you care about — the rest stays consistent:
 
 ```dart
 final theme = MarkdownThemes.dracula.copyWith(
@@ -95,8 +111,8 @@ The full slot list lives on [`MarkdownTheme`](lib/src/theme/markdown_theme.dart)
 
 ## Match your app's theme
 
-If your app already wraps components in `TuiTheme`, derive markdown colors from it, so
-rendered markdown matches the surrounding UI:
+If your app already wraps components in `TuiTheme`, you can derive markdown colors from
+it so rendered markdown matches the surrounding UI:
 
 ```dart
 final theme = MarkdownTheme.fromTuiTheme(TuiTheme.of(context));
@@ -117,11 +133,10 @@ final pair = AdaptiveMarkdownTheme(
 
 ## Code blocks
 
-Code blocks render with the theme's background so they read as one surface with the
-page, and **syntax highlighting is on by default**: `SyntaxCoreHighlighter` uses
-TextMate grammars (the same ones VS Code uses) mapped onto your theme's syntax slots,
-with a graceful plain fallback for unknown languages. If you want plain rendering,
-pass the null highlighter explicitly:
+Code blocks render with the theme's background so they read as one surface with the page,
+and **syntax highlighting is on by default**: `SyntaxCoreHighlighter` uses TextMate
+grammars (the same ones VS Code uses) mapped onto your theme's syntax slots, with a
+graceful plain fallback for unknown languages. You can turn it off or add line numbers:
 
 ```dart
 MarkdownPlus(
@@ -134,8 +149,9 @@ MarkdownPlus(
 
 ## Diff blocks
 
-Fenced `diff` and `patch` blocks render as colorized diffs: additions in the theme's
-green, removals in its red, and hunk headers dimmed:
+Fenced `diff` and `patch` blocks render as colorized diffs — additions in the theme's
+green, removals in its red, hunk headers dimmed — with no extra configuration. The
+`diff` info string selects the renderer:
 
 ````md
 ```diff
@@ -143,8 +159,6 @@ green, removals in its red, and hunk headers dimmed:
 + final greeting = 'hello, world';
 ```
 ````
-
-No extra configuration — the `diff` info string selects the renderer.
 
 ## Conceal source markers
 
@@ -157,8 +171,8 @@ MarkdownPlus(text, showMarkers: false);
 
 ## Everything a model emits
 
-The renderer covers what LLM output actually contains — GitHub alerts, footnotes,
-emoji shortcodes, definition lists, and autolinks all render out of the box:
+The renderer covers what LLM output actually contains — GitHub alerts, footnotes, emoji
+shortcodes, definition lists, and autolinks all render out of the box:
 
 ```md
 > [!WARNING]
@@ -172,10 +186,35 @@ markdown
 : A lightweight markup language.
 ```
 
+## Front matter
+
+A leading YAML front matter block (`---` … `---`) is metadata, not prose — it is
+skipped by default instead of spilling into the document. Need it back? Pick it up with
+a per-tag builder:
+
+```md
+---
+title: Demo
+---
+# Rendered content
+```
+
+```dart
+MarkdownPlus(
+  text,
+  builders: {
+    'front_matter': (element, visitor) =>
+        TextSpan(text: element.textContent),
+  },
+);
+```
+
+A `---` first line without a closing `---` stays an ordinary horizontal rule.
+
 ## Streaming into a chat
 
-`MarkdownPlus` memoizes each top-level block, so a growing reply re-renders only
-its tail — feed it the text received so far and settled blocks are reused:
+`MarkdownPlus` memoizes each top-level block, so a growing reply re-renders only its
+tail — feed it the text received so far and settled blocks are reused:
 
 ```dart
 final reply = StringBuffer();
@@ -189,8 +228,8 @@ MarkdownPlus(_text);
 
 ## Custom tag rendering
 
-Replace the renderer for any tag without forking the engine — return `null` to keep
-the default:
+You can replace the renderer for any tag without forking the engine — return `null` to
+keep the default:
 
 ```dart
 MarkdownPlus(
@@ -211,8 +250,8 @@ MarkdownPlus(text, ansi256: true);
 
 ## Mermaid diagrams
 
-Fenced `mermaid` blocks render as terminal diagrams — boxes, edges,
-arrowheads and edge labels:
+Fenced `mermaid` blocks render as terminal diagrams — boxes, edges, arrowheads and edge
+labels:
 
 ````md
 ```mermaid
@@ -223,21 +262,33 @@ graph TD
 ```
 ````
 
-Unsupported diagram types fall back to a plain source listing, so nothing
-ever breaks.
+Unsupported diagram types fall back to a plain source listing, so nothing ever breaks.
 
 ## A note on colors
 
-Presets use explicit truecolor values (e.g. `#cba6f7`), not ANSI palette indices. That
-way the same theme renders identically across terminals instead of picking up whatever
-palette your terminal happens to define. Themes are also contrast-audited — every
-foreground meets WCAG AA (4.5:1) against its background; you can re-check any change with:
+Presets use explicit truecolor values (e.g. `#cba6f7`), not ANSI palette indices, so the
+same theme renders identically across terminals instead of picking up whatever palette
+your terminal happens to define. Themes are also contrast-audited — every foreground
+meets WCAG AA (4.5:1) against its background; you can re-check any change with:
 
 ```console
 dart run tool/contrast_audit.dart
 ```
 
-## License
+## 🤝 Contributing
 
-MIT. Includes vendored unicode-width utilities from nocterm (MIT) — see
-[LICENSE](LICENSE).
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, checks, and pull request
+guidelines.
+
+## ⚖️ License
+
+Distributed under the MIT License. Includes vendored unicode-width utilities from
+nocterm (MIT) — see [LICENSE](LICENSE).
+
+---
+
+<div align="right">
+
+Created by [Amid Voshakul 🌠](https://github.com/AmidVoshakul)
+
+</div>

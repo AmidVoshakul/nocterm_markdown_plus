@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.1.1
+
+### Added
+
+- **Front matter:** a leading YAML `---` … `---` block is metadata, not
+  prose — it is skipped by default; a `'front_matter'` per-tag builder can
+  render it. A `---` first line without a closer stays an ordinary
+  horizontal rule.
+
+### Fixed
+
+- Malformed alert divs (`markdown-alert` without a known type) crashed the
+  renderer; they now render as ordinary content.
+- `footnoteRefStyle.prefix`/`suffix` glyphs were ignored — they now wrap the
+  `[n]` reference.
+- Exact grays (e.g. `#808080`) snapped to the color cube during `ansi256`
+  quantization instead of staying on the gray ramp.
+- Dead code removed (`AsciiCanvas.fill`/`overwrite`).
+
 ## 0.1.0
 
 ### Added

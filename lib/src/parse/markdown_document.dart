@@ -1,13 +1,37 @@
 import 'package:markdown/markdown.dart' as md;
 
 /// Parses markdown into an AST, applying post-passes that the upstream
-/// parser does not cover (currently: definition lists).
+/// parser does not cover (currently: definition lists and front matter).
 List<md.Node> parseDocument(String text, {md.ExtensionSet? extensionSet}) {
   final document = md.Document(
     extensionSet: extensionSet ?? md.ExtensionSet.gitHubWeb,
     encodeHtml: false,
   );
-  return _withDefinitionLists(document.parse(text));
+  final split = _splitFrontMatter(text);
+  final nodes = split == null
+      ? document.parse(text)
+      : <md.Node>[split.$1, ...document.parse(split.$2)];
+  return _withDefinitionLists(nodes);
+}
+
+/// Splits a leading YAML front matter block off the source text.
+///
+/// Front matter is `---` on the first line, an inner payload, and a closing
+/// `---` line; it becomes a `front_matter` element carrying the raw inner
+/// text. The renderer skips it by default, but a `'front_matter'` per-tag
+/// builder can pick it up. A first line of `---` with no matching closer is
+/// not front matter: it renders as a horizontal rule, like in any markdown
+/// document.
+(md.Element frontMatter, String rest)? _splitFrontMatter(String text) {
+  final lines = text.split('\n');
+  if (lines.first.trimRight() != '---') return null;
+  for (var i = 1; i < lines.length; i++) {
+    if (lines[i].trimRight() != '---') continue;
+    final inner = lines.sublist(1, i).join('\n');
+    final rest = lines.sublist(i + 1).join('\n');
+    return (md.Element('front_matter', <md.Node>[md.Text(inner)]), rest);
+  }
+  return null;
 }
 
 /// Rewrites `term\n: description` paragraphs into definition lists.

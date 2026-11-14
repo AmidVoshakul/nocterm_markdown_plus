@@ -11,3 +11,4 @@ pubspec.lock
 # Python tool caches (local linting)
 .ruff_cache/
 AGENTS.md
+coverage/

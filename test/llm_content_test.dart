@@ -1,3 +1,4 @@
+import 'package:markdown/markdown.dart' as md;
 import 'package:nocterm/nocterm.dart';
 import 'package:nocterm_markdown_plus/nocterm_markdown_plus.dart';
 import 'package:test/test.dart';
@@ -109,6 +110,27 @@ void main() {
           .visitNodes(parseDocument('Hi :rocket: there'));
       final flat = (spans).map(_plainText).join();
       expect(flat, contains('🚀'));
+    });
+  });
+
+  group('malformed alerts', () {
+    test('an alert div without a known type renders plain content', () {
+      final element = md.Element('div', <md.Node>[md.Text('hello')])
+        ..attributes['class'] = 'markdown-alert';
+      final spans = MarkdownPlusVisitor(_theme).visitNodes([element]);
+      final flat = spans.map(_plainText).join();
+      expect(flat, contains('hello'));
+      expect(flat, isNot(contains('NOTE')));
+    });
+  });
+
+  group('footnote ref glyphs', () {
+    test('footnoteRefStyle prefix and suffix wrap the ref', () {
+      final theme = _theme.copyWith(
+        footnoteRefStyle: MarkdownStyle(prefix: '\u2020', suffix: '\u2020'),
+      );
+      final text = _render('Body[^1]\n\n[^1]: note text', theme);
+      expect(_plainTextOf(text), contains('\u2020[1]\u2020'));
     });
   });
 }
