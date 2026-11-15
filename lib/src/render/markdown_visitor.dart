@@ -380,7 +380,11 @@ class MarkdownPlusVisitor {
     }
 
     if (language == 'diff' || language == 'patch') {
-      return DiffRenderer.render(diff: code, theme: theme);
+      return DiffRenderer.render(
+        diff: code,
+        theme: theme,
+        highlighter: highlighter,
+      );
     }
     return CodeBlockRenderer.render(
       code: code,

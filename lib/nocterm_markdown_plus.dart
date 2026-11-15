@@ -26,4 +26,5 @@ export 'src/render/markdown_visitor.dart'
     show MarkdownPlusBuilder, MarkdownPlusVisitor;
 export 'src/theme/markdown_theme.dart'
     show AdaptiveMarkdownTheme, MarkdownStyle, MarkdownTheme, SyntaxTheme;
+export 'src/theme/no_color.dart' show NoColor;
 export 'src/theme/presets.dart' show MarkdownThemes;

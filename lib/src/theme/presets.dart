@@ -35,14 +35,6 @@ Color _c(int hex) => Color(0xFF000000 | hex);
 
 /// Blends two colors — used to lift dim roles (syntax comments) to AA
 /// contrast on the code background while keeping them visually recessive.
-Color _blend(Color a, Color b, double t) {
-  int ch(int x, int y) => (x + (y - x) * t).round().clamp(0, 255);
-  return Color.fromRGB(
-    ch(a.red, b.red),
-    ch(a.green, b.green),
-    ch(a.blue, b.blue),
-  );
-}
 
 MarkdownStyle _s(
   Color color, {
@@ -76,7 +68,7 @@ MarkdownTheme _theme(String name, Brightness brightness, _Palette raw) {
     keyword: _s(accent),
     string: _s(green),
     number: _s(emph),
-    comment: _s(_blend(muted, fg, 0.68), italic: true),
+    comment: _s(blendColors(muted, fg, 0.68), italic: true),
     function: _s(accent2),
     variable: _s(fg),
     type: _s(cyan),
@@ -126,8 +118,14 @@ MarkdownTheme _theme(String name, Brightness brightness, _Palette raw) {
     alertCautionStyle: _s(red_).copyWith(prefix: '🔥 '),
     footnoteRefStyle: _s(cyan).copyWith(prefix: '[', suffix: ']'),
     footnoteDefinitionStyle: _s(muted),
-    diffAddedStyle: _s(green),
-    diffRemovedStyle: _s(red_),
+    diffAddedStyle: MarkdownStyle(
+      color: fg,
+      background: blendColors(codeBg, green, 0.22),
+    ),
+    diffRemovedStyle: MarkdownStyle(
+      color: fg,
+      background: blendColors(codeBg, red_, 0.22),
+    ),
     diffHunkStyle: _s(emph),
     diffMetaStyle: _s(muted),
     syntaxTheme: syntax,

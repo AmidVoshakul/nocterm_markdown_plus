@@ -16,7 +16,7 @@ The themed markdown renderer for *nocterm*.
 
 - [x] Syntax-aware inline styling
 - [x] Conceal mode for rendered output
-- [x] Streaming re-renders only the new tail
+- [ ] Streaming re-renders only the new tail
 
 ## Code
 
@@ -85,7 +85,7 @@ sequenceDiagram
 
 ---
 
-[pub.dev](https://pub.dev/packages/nocterm) · [nocterm](https://nocterm.dev)
+[nocterm](https://nocterm.dev) · [nocterm_markdown_plus](https://github.com/AmidVoshakul/nocterm_markdown_plus)
 ''';
 
 void main() {
@@ -104,8 +104,12 @@ class _MarkdownGalleryState extends State<MarkdownGallery> {
   bool _showMarkers = true;
   bool _lineNumbers = false;
   bool _highlighting = true;
+  bool _dimmed = false;
 
-  MarkdownTheme get _theme => MarkdownThemes.gallery[_index];
+  MarkdownTheme get _theme {
+    final t = MarkdownThemes.gallery[_index];
+    return _dimmed ? t.dimmed() : t;
+  }
 
   CodeHighlighter? get _highlighter =>
       _highlighting ? const SyntaxCoreHighlighter() : null;
@@ -122,6 +126,8 @@ class _MarkdownGalleryState extends State<MarkdownGallery> {
         setState(() => _lineNumbers = !_lineNumbers);
       case LogicalKey.keyH:
         setState(() => _highlighting = !_highlighting);
+      case LogicalKey.keyD:
+        setState(() => _dimmed = !_dimmed);
       case LogicalKey.keyQ:
         _quit();
       case LogicalKey.keyC when event.isControlPressed:
@@ -177,7 +183,7 @@ class _MarkdownGalleryState extends State<MarkdownGallery> {
                   ),
                   Expanded(child: SizedBox()),
                   Text(
-                    ' ←/→ theme · m markers · n line numbers · h highlight · q quit ',
+                    ' ←/→ theme · m markers · n line numbers · h highlight · d dim · q quit ',
                     style: TextStyle(color: _theme.horizontalRuleStyle?.color),
                   ),
                 ],

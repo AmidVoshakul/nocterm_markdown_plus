@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.1.2
+
+### Added
+
+- **NO_COLOR support:** honors `NO_COLOR` (https://no-color.org) at render
+  time — when set (non-empty value, including `0`), all foreground and
+  background colours are dropped to the terminal default while bold,
+  italic, underline, strikethrough and glyphs are preserved. Implemented
+  as a single choke point in `MarkdownStyle.toTextStyle()`, so it covers
+  every theme slot, diff backgrounds and syntax tokens. `NoColor` is
+  exported from the package entry point with `enabled`, `enabledIn` and
+  `setOverride` (for tests and hosts reading their own configuration).
+
+- **Dimmed rendering:** `MarkdownTheme.dimmed({factor})` (and
+  `MarkdownStyle.dimmed`) blend every colour toward the page background, so
+  LLM "thinking" output can be rendered ~50% dimmer without competing
+  with the answer. Composes with `quantizedToAnsi256`.
+
+### Changed
+
+- **Diff rendering** now uses a coloured background (VS Code style) with
+  code-coloured, syntax-highlighted text instead of flat coloured lines;
+  language is detected from the `---`/`+++`/`diff --git` headers. Hunk
+  headers and git metadata keep their own colours.
+- Consolidated the duplicated colour-blend helper into a single
+  `blendColors` in `markdown_theme.dart` (presets and `fromTuiTheme`
+  now share it).
+
 ## 0.1.1
 
 ### Added

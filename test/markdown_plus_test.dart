@@ -235,6 +235,58 @@ void main() {
       });
     });
 
+    test('right-aligned column pads on the left', () async {
+      await testNocterm('right-aligned column pads on the left', (
+        tester,
+      ) async {
+        await tester.pumpComponent(
+          _md('''
+| a | b |
+|----:|----:|
+| x | y |
+'''),
+        );
+        final lines = tester.terminalState.getText().split('\n');
+        final row = lines.firstWhere((l) => l.contains('\u2502 x '));
+        expect(row.indexOf('x'), greaterThan(row.indexOf('\u2502')));
+      });
+    });
+
+    test('very narrow maxWidth keeps grid shape', () {
+      final table = md.Element('table', [
+        md.Element('thead', [
+          _tr(['Name', 'Role']),
+        ]),
+        md.Element('tbody', [
+          _tr(['amid', 'dev']),
+        ]),
+      ]);
+      final span = MarkdownPlusVisitor(
+        MarkdownThemes.nord,
+        maxWidth: 8,
+      ).visitElement(table);
+      expect(span, isNotNull);
+      final text = _plainText(span!);
+      expect(text, contains('ami'));
+      expect(text, contains('dev'));
+    });
+
+    test('overlong word is broken across lines', () async {
+      await testNocterm('overlong word is broken across lines', (tester) async {
+        await tester.pumpComponent(
+          _md('''
+| col |
+|-----|
+| supercalifragilisticexpialidocious |
+''', maxWidth: 12),
+        );
+        final text = tester.terminalState.getText();
+        expect(text.contains('super'), isTrue);
+        final rows = text.split('\n').where((l) => l.contains('\u2502')).length;
+        expect(rows, greaterThan(2));
+      });
+    });
+
     test('renders GFM tables with all cells', () async {
       await testNocterm('renders GFM tables with all cells', (tester) async {
         await tester.pumpComponent(

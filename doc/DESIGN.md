@@ -21,6 +21,8 @@ proof (popular terminal renderers, ~28k stars each).
 | D4 | Themes: presets + custom (code/JSON) + brightness-adaptive | Presets only | Max theme coverage; nocterm core provides brightness detection |
 | D5 | MIT license | Apache-2.0 | Ecosystem is uniformly MIT; MIT deps; minimal friction |
 | D6 | Front matter: skip by default, `'front_matter'` builder tag | Styled metadata block (new theme slots) | It is app metadata, not prose; zero API growth, builders give opt-in rendering |
+| D7 | NO_COLOR as a single choke point in `MarkdownStyle.toTextStyle()` | Global registry mirroring file_color's `TerminalColors` | Render-time check covers every slot, diff backgrounds and syntax tokens uniformly; builders' own spans stay untouched |
+| D8 | `dimmed()` blends colours toward the page background | Brightness × 0.5 | Preserves hue on light/dark themes; flags/glyphs/page background unchanged; composes with `quantizedToAnsi256` |
 
 ## 3. Key findings (Phase 0 spike)
 
@@ -114,6 +116,7 @@ highlighting adapter) ships in a single 0.1.0 release.
 
 ### Update log
 
+- **0.1.2 — NO_COLOR + dimmed + diff rewrite:** `NoColor` honored at render time through `MarkdownStyle.toTextStyle()`; `MarkdownTheme.dimmed()` for LLM thinking output; diff renderer now uses coloured backgrounds + syntax highlighting with language detection; duplicated `blend` helper consolidated into `blendColors`; coverage gate excludes vendored unicode util (87%).
 - **Front matter split (0.2.0):** `parseDocument` peels a leading
   `---`…`---` YAML block into a `front_matter` element before the parser
   runs; the visitor skips it and a per-tag builder can render it. A `---`

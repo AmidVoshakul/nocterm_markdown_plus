@@ -6,6 +6,23 @@ import 'package:nocterm_markdown_plus/nocterm_markdown_plus.dart';
 import 'package:test/test.dart';
 
 void main() {
+  group('dimmed', () {
+    test('blends foreground toward background', () {
+      const style = MarkdownStyle.all(Color(0xFFFFFFFF));
+      final dim = style.dimmed(const Color(0xFF000000), factor: 0.5);
+      expect(dim.color, const Color(0xFF808080));
+      expect(dim.bold, isFalse);
+    });
+
+    test('theme.dimmed preserves background and changes name', () {
+      final t = MarkdownThemes.catppuccinMocha;
+      final d = t.dimmed(factor: 0.5);
+      expect(d.background, t.background);
+      expect(d.name, contains('dimmed'));
+      expect(d.textStyle!.color, isNot(t.textStyle!.color));
+    });
+  });
+
   group('MarkdownStyle', () {
     test('copyWith overrides selectively', () {
       const style = MarkdownStyle.all(Color(0xFF112233));
@@ -185,6 +202,25 @@ void main() {
       );
       expect(adaptive.resolve(Brightness.dark).name, 'd');
       expect(adaptive.resolve(Brightness.light).name, 'l');
+    });
+  });
+
+  group('quantized', () {
+    test('quantizedToAnsi256 runs over a preset', () {
+      final q = MarkdownThemes.catppuccinMocha.quantizedToAnsi256();
+      expect(q.name, MarkdownThemes.catppuccinMocha.name);
+      expect(q.textStyle, isNotNull);
+    });
+  });
+
+  group('SyntaxTheme', () {
+    test('toJson/fromJson round trip', () {
+      const syntax = SyntaxTheme(
+        keyword: MarkdownStyle.all(Color(0xFF0000FF)),
+        string: MarkdownStyle(color: Color(0xFF00FF00), bold: true),
+      );
+      final restored = SyntaxTheme.fromJson(syntax.toJson());
+      expect(restored, syntax);
     });
   });
 

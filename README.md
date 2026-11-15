@@ -10,7 +10,7 @@
 
 Render themed markdown in your [nocterm](https://pub.dev/packages/nocterm) terminal app: 19
 curated themes, per-element style slots, styled tables, task lists, syntax-highlighted code
-blocks, and diff rendering — all out of the box.
+blocks, diff rendering, `NO_COLOR` support, and dimmed output for LLM thinking — all out of the box.
 
 nocterm ships a basic `MarkdownText` with a single hardcoded stylesheet. Drop in
 `MarkdownPlus` when you want your markdown to look *designed*: colors that follow one
@@ -23,7 +23,7 @@ Add the dependency:
 ```yaml
 dependencies:
   nocterm: ^0.9.0
-  nocterm_markdown_plus: ^0.1.1
+  nocterm_markdown_plus: ^0.1.2
 ```
 
 Or from the command line:
@@ -263,6 +263,39 @@ graph TD
 ````
 
 Unsupported diagram types fall back to a plain source listing, so nothing ever breaks.
+
+## NO_COLOR
+
+The package honors the [`NO_COLOR`](https://no-color.org) convention: when the
+environment variable is set to a non-empty value (including `0`), every
+foreground and background colour is dropped to the terminal default — bold,
+italic, underline, strikethrough and glyphs are preserved, so structure and
+emphasis survive. The check happens at render time through a single choke
+point, so it covers every theme slot, diff backgrounds and syntax tokens.
+
+```dart
+// Hosts that read their own configuration can override the probe:
+NoColor.setOverride(true);
+```
+
+Colours emitted by your own per-tag builders are not intercepted — those spans
+are yours to style. If you want a fully colourless *and* literal-marker look
+(`**bold**`), use `MarkdownThemes.ascii` instead.
+
+## Dimmed rendering
+
+LLM output often mixes a "thinking" section with the final answer. Render the
+thinking part ~50% dimmer so it does not compete with the answer, while
+keeping the answer at full strength:
+
+```dart
+MarkdownPlus(thinkingText, theme: theme.dimmed()); // dimmed
+MarkdownPlus(answerText, theme: theme);              // full strength
+```
+
+`MarkdownTheme.dimmed({factor})` (and `MarkdownStyle.dimmed`) blend every
+colour toward the page background; emphasis flags, glyphs and the page
+background itself are preserved. Composes with `quantizedToAnsi256`.
 
 ## A note on colors
 

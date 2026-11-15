@@ -1,6 +1,6 @@
 name: nocterm_markdown_plus
 description: Themed markdown rendering for nocterm — 19 color themes with light/dark support, styled tables, task lists, and a pluggable code highlighting pipeline.
-version: 0.1.1
+version: 0.1.2
 homepage: https://github.com/AmidVoshakul/nocterm_markdown_plus
 repository: https://github.com/AmidVoshakul/nocterm_markdown_plus
 issue_tracker: https://github.com/AmidVoshakul/nocterm_markdown_plus/issues

@@ -1,5 +1,7 @@
 import 'package:nocterm/nocterm.dart';
 
+import 'no_color.dart';
+
 /// A single style inside a [MarkdownTheme].
 ///
 /// Styles are small, immutable value objects so they can be composed,
@@ -60,10 +62,29 @@ class MarkdownStyle {
     );
   }
 
+  /// Returns a copy whose colours are blended toward [base] by [factor],
+  /// making the whole style less prominent (e.g. 50% dimmer for LLM
+  /// "thinking" output). Emphasis flags and glyphs are preserved.
+  MarkdownStyle dimmed(Color base, {double factor = 0.5}) {
+    return MarkdownStyle(
+      color: color == null ? null : blendColors(color!, base, factor),
+      background: background == null
+          ? null
+          : blendColors(background!, base, factor),
+      bold: bold,
+      italic: italic,
+      underline: underline,
+      strikethrough: strikethrough,
+      prefix: prefix,
+      suffix: suffix,
+    );
+  }
+
   TextStyle toTextStyle() {
+    final noColor = NoColor.enabled;
     return TextStyle(
-      color: color,
-      backgroundColor: background,
+      color: noColor ? null : color,
+      backgroundColor: noColor ? null : background,
       fontWeight: bold ? FontWeight.bold : FontWeight.normal,
       fontStyle: italic ? FontStyle.italic : FontStyle.normal,
       decoration: underline
@@ -198,6 +219,22 @@ class SyntaxTheme {
       operator: operator ?? this.operator,
       punctuation: punctuation ?? this.punctuation,
       plain: plain ?? this.plain,
+    );
+  }
+
+  SyntaxTheme dimmed(Color base, {double factor = 0.5}) {
+    MarkdownStyle? d(MarkdownStyle? s) => s?.dimmed(base, factor: factor);
+    return SyntaxTheme(
+      keyword: d(keyword),
+      string: d(string),
+      number: d(number),
+      comment: d(comment),
+      function: d(function),
+      variable: d(variable),
+      type: d(type),
+      operator: d(operator),
+      punctuation: d(punctuation),
+      plain: d(plain),
     );
   }
 
@@ -524,7 +561,7 @@ class MarkdownTheme {
     // dark themes, darker on light themes, so paragraphs stay readable.
     final baseText = light
         ? _scaled(data.onSurface, 0.78)
-        : _blend(data.onSurface, const Color(0xFFFFFFFF), 0.16);
+        : blendColors(data.onSurface, const Color(0xFFFFFFFF), 0.16);
     return MarkdownTheme(
       name: name ?? 'tui-theme',
       brightness: data.brightness,
@@ -577,8 +614,14 @@ class MarkdownTheme {
         suffix: ']',
       ).copyWith(color: secondary),
       footnoteDefinitionStyle: MarkdownStyle.all(data.outline),
-      diffAddedStyle: MarkdownStyle.all(accent(data.success)),
-      diffRemovedStyle: MarkdownStyle.all(accent(data.error)),
+      diffAddedStyle: MarkdownStyle(
+        color: data.onSurface,
+        background: blendColors(data.surface, accent(data.success), 0.22),
+      ),
+      diffRemovedStyle: MarkdownStyle(
+        color: data.onSurface,
+        background: blendColors(data.surface, accent(data.error), 0.22),
+      ),
       diffHunkStyle: MarkdownStyle.all(accent(data.warning)),
       diffMetaStyle: MarkdownStyle.all(data.outline),
       syntaxTheme: SyntaxTheme(
@@ -899,6 +942,67 @@ class MarkdownTheme {
       taskUncheckedGlyph: taskUncheckedGlyph,
     );
   }
+
+  /// Returns a copy whose every colour is blended toward the page background
+  /// by [factor] (default 0.5), making the whole rendered markdown less
+  /// prominent — useful for LLM "thinking" output that should not compete
+  /// with the main answer. Emphasis flags, glyphs and the page background
+  /// itself are preserved. Compose with [quantizedToAnsi256] as needed.
+  MarkdownTheme dimmed({double factor = 0.5}) {
+    final base =
+        background ??
+        (brightness == Brightness.dark
+            ? const Color(0xFF000000)
+            : const Color(0xFFFFFFFF));
+    MarkdownStyle? d(MarkdownStyle? s) => s?.dimmed(base, factor: factor);
+    return copyWith(
+      name: '$name (dimmed)',
+      textStyle: d(textStyle),
+      paragraphStyle: d(paragraphStyle),
+      h1Style: d(h1Style),
+      h2Style: d(h2Style),
+      h3Style: d(h3Style),
+      h4Style: d(h4Style),
+      h5Style: d(h5Style),
+      h6Style: d(h6Style),
+      strongStyle: d(strongStyle),
+      emphStyle: d(emphStyle),
+      delStyle: d(delStyle),
+      codeStyle: d(codeStyle),
+      codeBackgroundStyle: d(codeBackgroundStyle),
+      codeBlockStyle: d(codeBlockStyle),
+      codeBlockBackgroundStyle: d(codeBlockBackgroundStyle),
+      blockQuoteStyle: d(blockQuoteStyle),
+      blockQuoteBarStyle: d(blockQuoteBarStyle),
+      linkStyle: d(linkStyle),
+      linkTextStyle: d(linkTextStyle),
+      listBulletStyle: d(listBulletStyle),
+      listEnumerationStyle: d(listEnumerationStyle),
+      horizontalRuleStyle: d(horizontalRuleStyle),
+      tableHeaderStyle: d(tableHeaderStyle),
+      tableBorderStyle: d(tableBorderStyle),
+      tableCellStyle: d(tableCellStyle),
+      imageStyle: d(imageStyle),
+      imageTextStyle: d(imageTextStyle),
+      taskCheckedStyle: d(taskCheckedStyle),
+      taskUncheckedStyle: d(taskUncheckedStyle),
+      definitionListStyle: d(definitionListStyle),
+      definitionTermStyle: d(definitionTermStyle),
+      definitionDescriptionStyle: d(definitionDescriptionStyle),
+      alertNoteStyle: d(alertNoteStyle),
+      alertTipStyle: d(alertTipStyle),
+      alertImportantStyle: d(alertImportantStyle),
+      alertWarningStyle: d(alertWarningStyle),
+      alertCautionStyle: d(alertCautionStyle),
+      footnoteRefStyle: d(footnoteRefStyle),
+      footnoteDefinitionStyle: d(footnoteDefinitionStyle),
+      diffAddedStyle: d(diffAddedStyle),
+      diffRemovedStyle: d(diffRemovedStyle),
+      diffHunkStyle: d(diffHunkStyle),
+      diffMetaStyle: d(diffMetaStyle),
+      syntaxTheme: syntaxTheme?.dimmed(base, factor: factor),
+    );
+  }
 }
 
 /// Converts a color to the nearest xterm-256 ANSI palette color.
@@ -978,7 +1082,7 @@ Color _scaled(Color color, double factor) {
   );
 }
 
-Color _blend(Color a, Color b, double t) {
+Color blendColors(Color a, Color b, double t) {
   int channel(int x, int y) => (x + (y - x) * t).round().clamp(0, 255);
   return Color.fromRGB(
     channel(a.red, b.red),
