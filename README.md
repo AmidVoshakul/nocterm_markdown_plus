@@ -91,7 +91,7 @@ fallback renders literal markers (`**bold**`) with no color at all.
 You can browse all of them in the bundled gallery and switch with `←/→`:
 
 ```console
-dart run example/demo.dart
+dart run example/main.dart
 ```
 
 ## Theme your own way
