@@ -1,0 +1,6 @@
+# Dev-only content; not needed by consumers.
+AGENTS.md
+coverage/
+test/
+tool/
+doc/
