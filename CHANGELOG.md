@@ -1,6 +1,20 @@
 # Changelog
 
+## 0.1.3
+
+### Added
+
+- `example/main.dart` is now a runnable entry point (was only an
+  `export`), so pub.dev awards the "package has an example" point
+  (160/160 pub points).
+
+### Changed
+
+- `.pubignore` excludes `AGENTS.md`, `coverage/`, `test/`, `tool/` and
+  `doc/` from the published archive.
+
 ## 0.1.2
+
 
 ### Added
 
