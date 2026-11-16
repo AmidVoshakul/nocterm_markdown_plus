@@ -3,6 +3,33 @@ import 'package:nocterm_markdown_plus/nocterm_markdown_plus.dart';
 import 'package:test/test.dart';
 
 void main() {
+  group('styleForToken', () {
+    test('falls back through syntax slots', () {
+      final theme = SyntaxTheme(
+        plain: const MarkdownStyle(color: Color(0xFF111111)),
+        string: const MarkdownStyle(color: Color(0xFF222222)),
+        keyword: const MarkdownStyle(color: Color(0xFF333333)),
+      );
+      expect(
+        styleForToken(theme, CodeTokenType.number)?.color,
+        const Color(0xFF222222),
+      );
+      expect(
+        styleForToken(theme, CodeTokenType.comment)?.color,
+        const Color(0xFF111111),
+      );
+      expect(
+        styleForToken(theme, CodeTokenType.variable)?.color,
+        const Color(0xFF111111),
+      );
+      expect(
+        styleForToken(theme, CodeTokenType.operator)?.color,
+        const Color(0xFF333333),
+      );
+      expect(styleForToken(null, CodeTokenType.plain), isNull);
+    });
+  });
+
   group('SyntaxCoreHighlighter', () {
     const highlighter = SyntaxCoreHighlighter();
 

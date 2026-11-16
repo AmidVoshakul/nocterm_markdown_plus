@@ -29,6 +29,7 @@ class CodeBlockRenderer {
 
     if (highlighter != null) {
       final tokenLines = _safeHighlight(highlighter, source, language);
+      final sourceLines = source.split('\n');
       for (var i = 0; i < tokenLines.length; i++) {
         if (lineNumbers) {
           children.add(
@@ -41,14 +42,20 @@ class CodeBlockRenderer {
             ),
           );
         }
-        for (final token in tokenLines[i]) {
-          final tokenStyle =
-              (styleForToken(theme.syntaxTheme, token.type) ?? baseStyle).merge(
-                bgStyle,
-              );
+        if (tokenLines[i].isEmpty) {
+          final fallback = i < sourceLines.length ? sourceLines[i] : '';
           children.add(
-            TextSpan(text: token.text, style: tokenStyle.toTextStyle()),
+            TextSpan(text: fallback, style: plainStyle.toTextStyle()),
           );
+        } else {
+          for (final token in tokenLines[i]) {
+            final tokenStyle =
+                (styleForToken(theme.syntaxTheme, token.type) ?? baseStyle)
+                    .merge(bgStyle);
+            children.add(
+              TextSpan(text: token.text, style: tokenStyle.toTextStyle()),
+            );
+          }
         }
         children.add(const TextSpan(text: '\n'));
       }

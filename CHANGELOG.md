@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.1
+
+### Changed
+
+- **Cache invalidation:** unified `_needsCacheReset`/`_needsReparse` into a single `_classifyRebuild` predicate; cache key now includes theme, builders, width and `NO_COLOR` state, preventing stale styles during streaming and theme switches.
+- **NO_COLOR:** container/page background now resolves through `NoColor.resolve`, so backgrounds drop to the terminal default alongside text colors.
+- Reduced `assets/demo.gif` below the 4 MB pub.dev screenshot limit and shortened the pubspec description to satisfy pub scoring.
+
+### Added
+
+- Regression tests for cache invalidation (theme change, `NO_COLOR` toggle) and Mermaid rasterization (A* bounds, protected cells, narrow widths, fallbacks).
+- dartdoc for `AdaptiveMarkdownTheme`, `CodeToken` and `CodeHighlighter`.
+
 ## 0.2.0
 
 ### Added

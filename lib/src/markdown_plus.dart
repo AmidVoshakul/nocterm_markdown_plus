@@ -7,7 +7,10 @@ import 'parse/markdown_document.dart';
 import 'render/markdown_visitor.dart';
 import 'render/image_block.dart';
 import 'theme/markdown_theme.dart';
+import 'theme/no_color.dart';
 import 'theme/presets.dart';
+
+enum _RebuildKind { none, reparse, reset }
 
 /// Displays markdown-formatted text with rich, themed colors.
 ///
@@ -112,6 +115,7 @@ class _MarkdownPlusState extends State<MarkdownPlus> {
   bool? _lastRenderImages;
   int? _lastImageMaxWidth;
   ImageProtocol? _lastImageProtocol;
+  bool? _lastNoColor;
 
   List<_Block> _parseBlocks(int? maxWidth) {
     final nodes = parseDocument(component.data);
@@ -173,37 +177,28 @@ class _MarkdownPlusState extends State<MarkdownPlus> {
     return c;
   }
 
-  /// Inputs baked into cached block spans: changing any of them must drop
-  /// the memo cache, not just trigger a re-render.
-  bool _needsCacheReset(int? maxWidth) =>
-      component.showMarkers != _lastShowMarkers ||
-      component.showListMarkers != _lastShowListMarkers ||
-      component.lineNumbers != _lastLineNumbers ||
-      component.ansi256 != _lastAnsi256 ||
-      !identical(component.builders, _lastBuilders) ||
-      (component.builders?.length ?? 0) != (_lastBuilders?.length ?? 0) ||
-      !identical(component.highlighter, _lastHighlighter) ||
-      component.theme != _lastTheme ||
-      maxWidth != _lastMaxWidth ||
-      component.renderImages != _lastRenderImages ||
-      component.imageMaxWidth != _lastImageMaxWidth ||
-      component.imageProtocol != _lastImageProtocol;
-
-  bool _needsReparse(int? maxWidth) =>
-      component.data != _lastData ||
-      !identical(component.theme, _lastTheme) ||
-      component.theme != _lastTheme ||
-      !identical(component.highlighter, _lastHighlighter) ||
-      component.showMarkers != _lastShowMarkers ||
-      component.showListMarkers != _lastShowListMarkers ||
-      component.lineNumbers != _lastLineNumbers ||
-      component.ansi256 != _lastAnsi256 ||
-      !identical(component.builders, _lastBuilders) ||
-      (component.builders?.length ?? 0) != (_lastBuilders?.length ?? 0) ||
-      maxWidth != _lastMaxWidth ||
-      component.renderImages != _lastRenderImages ||
-      component.imageMaxWidth != _lastImageMaxWidth ||
-      component.imageProtocol != _lastImageProtocol;
+  /// Single source of truth for cache/reparse decisions. Cache-affecting
+  /// inputs (theme, markers, builders, NO_COLOR, width, ...) force a cache
+  /// reset; a data-only change only re-parses and may reuse cached blocks.
+  _RebuildKind _classifyRebuild(int? maxWidth) {
+    final cacheAffectingChanged =
+        component.showMarkers != _lastShowMarkers ||
+        component.showListMarkers != _lastShowListMarkers ||
+        component.lineNumbers != _lastLineNumbers ||
+        component.ansi256 != _lastAnsi256 ||
+        !identical(component.builders, _lastBuilders) ||
+        (component.builders?.length ?? 0) != (_lastBuilders?.length ?? 0) ||
+        !identical(component.highlighter, _lastHighlighter) ||
+        component.theme != _lastTheme ||
+        maxWidth != _lastMaxWidth ||
+        component.renderImages != _lastRenderImages ||
+        component.imageMaxWidth != _lastImageMaxWidth ||
+        component.imageProtocol != _lastImageProtocol ||
+        NoColor.enabled != _lastNoColor;
+    final dataChanged = component.data != _lastData;
+    if (!dataChanged && !cacheAffectingChanged) return _RebuildKind.none;
+    return cacheAffectingChanged ? _RebuildKind.reset : _RebuildKind.reparse;
+  }
 
   @override
   Component build(BuildContext context) {
@@ -215,10 +210,11 @@ class _MarkdownPlusState extends State<MarkdownPlus> {
                 ? constraints.maxWidth.toInt()
                 : null);
 
-        if (_needsCacheReset(maxWidth)) {
+        final decision = _classifyRebuild(maxWidth);
+        if (decision == _RebuildKind.reset) {
           _blockCache.clear();
         }
-        if (_needsReparse(maxWidth)) {
+        if (decision != _RebuildKind.none) {
           _lastData = component.data;
           _lastTheme = component.theme;
           _lastHighlighter = component.highlighter;
@@ -231,6 +227,7 @@ class _MarkdownPlusState extends State<MarkdownPlus> {
           _lastRenderImages = component.renderImages;
           _lastImageMaxWidth = component.imageMaxWidth;
           _lastImageProtocol = component.imageProtocol;
+          _lastNoColor = NoColor.enabled;
           _blocks = _parseBlocks(maxWidth);
         }
 
@@ -283,7 +280,7 @@ class _MarkdownPlusState extends State<MarkdownPlus> {
           mainAxisSize: MainAxisSize.min,
           children: children,
         );
-        final background = component.theme?.background;
+        final background = NoColor.resolve(component.theme?.background);
         if (background == null) return content;
         return Container(color: background, child: content);
       },

@@ -19,6 +19,7 @@ enum CodeTokenType {
 
 /// A highlighted code fragment.
 class CodeToken {
+  /// Creates a token with the given [text] and [type].
   const CodeToken(this.text, this.type);
 
   /// The token text.
@@ -33,6 +34,7 @@ class CodeToken {
 /// Implementations must never throw for unknown input — fall back to plain
 /// tokens so markdown rendering keeps working.
 abstract class CodeHighlighter {
+  /// Creates a highlighter.
   const CodeHighlighter();
 
   /// Tokenizes [code] into one token list per line.

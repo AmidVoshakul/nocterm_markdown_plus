@@ -3,6 +3,7 @@ import 'package:nocterm/nocterm.dart';
 
 import '../highlight/code_highlighter.dart';
 import '../theme/markdown_theme.dart';
+import '../theme/no_color.dart';
 import 'code_block_renderer.dart';
 import '../diagram/mermaid_renderer.dart';
 import 'diff_renderer.dart';
@@ -517,16 +518,31 @@ extension _BlockCache on MarkdownPlusVisitor {
   /// and a paragraph can share text, and two code blocks can carry the same
   /// code with different languages (different highlighting).
   String _cacheKeyFor(md.Node node) {
-    if (node is! md.Element) return 'text:${node.textContent}';
-    String? language;
-    if (node.tag == 'pre') {
-      final code = node.children?.whereType<md.Element>().firstOrNull;
-      final className = code?.attributes['class'];
-      if (className?.startsWith('language-') == true) {
-        language = className!.substring(9);
+    final signature = Object.hash(
+      theme,
+      maxWidth ?? -1,
+      showMarkers,
+      showListMarkers,
+      lineNumbers,
+      highlighter,
+      builders,
+      NoColor.enabled,
+    );
+    String base;
+    if (node is! md.Element) {
+      base = 'text:${node.textContent}';
+    } else {
+      String? language;
+      if (node.tag == 'pre') {
+        final code = node.children?.whereType<md.Element>().firstOrNull;
+        final className = code?.attributes['class'];
+        if (className?.startsWith('language-') == true) {
+          language = className!.substring(9);
+        }
       }
+      base = '${node.tag}:${language ?? ''}:${node.textContent}';
     }
-    return '${node.tag}:${language ?? ''}:${node.textContent}';
+    return '$signature|$base';
   }
 
   List<InlineSpan>? _cachedSpansFor(md.Node node) =>

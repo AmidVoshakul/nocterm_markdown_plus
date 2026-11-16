@@ -47,3 +47,10 @@ jobs:
             echo "Coverage is below the 80% floor"
             exit 1
           fi
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: coverage/lcov.info
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}

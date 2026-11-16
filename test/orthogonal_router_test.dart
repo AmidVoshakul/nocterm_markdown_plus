@@ -51,4 +51,43 @@ void main() {
       expect(path!.every((p) => p.$2 == 0), isTrue);
     });
   });
+
+  test('returns the start cell when start equals end', () {
+    final path = routeOrthogonal(
+      start: (2, 2),
+      end: (2, 2),
+      width: 4,
+      height: 4,
+      blocked: <(int, int)>{},
+    );
+    expect(path, [(2, 2)]);
+  });
+
+  test('every returned cell stays inside the grid', () {
+    final blocked = <(int, int)>{(1, 1), (2, 1), (1, 2)};
+    final path = routeOrthogonal(
+      start: (0, 0),
+      end: (3, 3),
+      width: 4,
+      height: 4,
+      blocked: blocked,
+    );
+    expect(path, isNotNull);
+    for (final p in path!) {
+      expect(p.$1 >= 0 && p.$1 < 4, isTrue);
+      expect(p.$2 >= 0 && p.$2 < 4, isTrue);
+    }
+  });
+
+  test('never revisits a cell', () {
+    final path = routeOrthogonal(
+      start: (0, 0),
+      end: (4, 4),
+      width: 6,
+      height: 6,
+      blocked: <(int, int)>{(2, 2)},
+    );
+    expect(path, isNotNull);
+    expect(path!.toSet().length, path.length);
+  });
 }

@@ -3,6 +3,7 @@
 [![CI](https://github.com/AmidVoshakul/nocterm_markdown_plus/actions/workflows/ci.yml/badge.svg)](https://github.com/AmidVoshakul/nocterm_markdown_plus/actions/workflows/ci.yml)
 [![Release](https://github.com/AmidVoshakul/nocterm_markdown_plus/actions/workflows/release.yml/badge.svg)](https://github.com/AmidVoshakul/nocterm_markdown_plus/actions/workflows/release.yml)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Coverage](https://codecov.io/gh/AmidVoshakul/nocterm_markdown_plus/branch/main/graph/badge.svg)](https://codecov.io/gh/AmidVoshakul/nocterm_markdown_plus)
 [![Pub Version](https://img.shields.io/pub/v/nocterm_markdown_plus)](https://pub.dev/packages/nocterm_markdown_plus)
 [![pub points](https://img.shields.io/pub/points/nocterm_markdown_plus?logo=dart)](https://pub.dev/packages/nocterm_markdown_plus/score)
 [![Pub Monthly Downloads](https://img.shields.io/pub/dm/nocterm_markdown_plus?color=yellow)](https://pub.dev/packages/nocterm_markdown_plus/score)
@@ -28,7 +29,7 @@ Add the dependency:
 ```yaml
 dependencies:
   nocterm: ^0.9.0
-  nocterm_markdown_plus: ^0.2.0
+  nocterm_markdown_plus: ^0.2.1
 ```
 
 Or from the command line:

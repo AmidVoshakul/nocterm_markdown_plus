@@ -1,6 +1,6 @@
 name: nocterm_markdown_plus
-description: Themed markdown rendering for nocterm — 19 built-in color themes (plus a system theme) with light/dark support, styled tables, task lists, and a pluggable code highlighting pipeline.
-version: 0.2.0
+description: "Themed markdown rendering for nocterm: 19 color themes, light/dark support, styled tables, task lists, and pluggable syntax highlighting."
+version: 0.2.1
 homepage: https://github.com/AmidVoshakul/nocterm_markdown_plus
 repository: https://github.com/AmidVoshakul/nocterm_markdown_plus
 issue_tracker: https://github.com/AmidVoshakul/nocterm_markdown_plus/issues
@@ -10,6 +10,9 @@ topics:
   - terminal
   - tui
   - themes
+
+examples:
+  - example/nocterm_markdown_plus_example.dart
 
 screenshots:
   - description: 'Live streaming markdown render with 20 themes (19 built-in + system)'

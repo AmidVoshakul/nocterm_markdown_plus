@@ -186,6 +186,32 @@ sequenceDiagram
       }
     });
 
+    test('flowchart LR keeps box borders closed at width 80', () {
+      final doc = md.Document(
+        extensionSet: md.ExtensionSet.gitHubWeb,
+        encodeHtml: false,
+      );
+      final spans =
+          MarkdownPlusVisitor(
+            MarkdownThemes.catppuccinMocha,
+            maxWidth: 80,
+          ).visitNodes(
+            doc.parse(
+              '```mermaid\nflowchart LR\n    A[Markdown] --> B[Parser]\n    A --> C[Visitor]\n    C --> D[Theme]\n```',
+            ),
+          );
+      final lines = _lines(spans);
+      for (final line in lines.where((l) => l.contains('┌'))) {
+        expect(line.contains('┐'), isTrue, reason: line);
+      }
+      for (final line in lines.where((l) => l.contains('└'))) {
+        expect(line.contains('┘'), isTrue, reason: line);
+      }
+      for (final line in lines) {
+        expect(line.length <= 82, isTrue, reason: line);
+      }
+    });
+
     test('flowchart with branching keeps box borders intact', () {
       final doc = md.Document(
         extensionSet: md.ExtensionSet.gitHubWeb,
@@ -237,6 +263,41 @@ pie title Pets
       expect(text, contains('Rats'));
       expect(text, contains('100.0%'));
       expect(text, contains('\u2588'));
+    });
+
+    test('gantt diagram falls back to source listing', () {
+      final doc = md.Document(
+        extensionSet: md.ExtensionSet.gitHubWeb,
+        encodeHtml: false,
+      );
+      final spans = MarkdownPlusVisitor(MarkdownThemes.catppuccinMocha)
+          .visitNodes(
+            doc.parse(
+              '```mermaid\ngantt\n    title A Gantt Diagram\n    dateFormat  YYYY-MM-DD\n    section Section\n    A task :a1, 2014-01-01, 30d\n```',
+            ),
+          );
+      final text = spans.map(_flat).join();
+      expect(text, contains('gantt'));
+      expect(text, contains('A task'));
+    });
+
+    test('sequence diagram renders without throwing at narrow width', () {
+      final doc = md.Document(
+        extensionSet: md.ExtensionSet.gitHubWeb,
+        encodeHtml: false,
+      );
+      final spans =
+          MarkdownPlusVisitor(
+            MarkdownThemes.catppuccinMocha,
+            maxWidth: 60,
+          ).visitNodes(
+            doc.parse(
+              '```mermaid\nsequenceDiagram\n    actor User as Пользователь\n    participant Pkg as Dart Package\n    User->>Pkg: render(markdownContent)\n```',
+            ),
+          );
+      final text = spans.map(_flat).join();
+      expect(text, contains('Пользователь'));
+      expect(text, contains('Dart Package'));
     });
 
     test('invalid mermaid source falls back to a code block', () {

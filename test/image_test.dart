@@ -87,6 +87,15 @@ void main() {
       });
     });
 
+    test('http image renders without crashing', () async {
+      await testNocterm('http image renders without crashing', (tester) async {
+        await tester.pumpComponent(
+          _md('![remote](https://example.com/red.png)'),
+        );
+        expect(tester.terminalState.getText(), isNotNull);
+      });
+    });
+
     test('unknown source falls back to placeholder text', () async {
       await testNocterm('unknown source falls back to placeholder text', (
         tester,

@@ -24,6 +24,24 @@ List<_Styled> _styledText(InlineSpan span) {
 
 MarkdownTheme get _theme => MarkdownThemes.catppuccinMocha;
 
+class _ThrowingHighlighter extends CodeHighlighter {
+  const _ThrowingHighlighter();
+
+  @override
+  List<List<CodeToken>> highlight(String code, {String? language}) {
+    throw StateError('boom');
+  }
+}
+
+class _EmptyTokenHighlighter extends CodeHighlighter {
+  const _EmptyTokenHighlighter();
+
+  @override
+  List<List<CodeToken>> highlight(String code, {String? language}) {
+    return code.split('\n').map((_) => const <CodeToken>[]).toList();
+  }
+}
+
 List<_Styled> _render(String markdown, {CodeHighlighter? highlighter}) {
   final doc = md.Document(
     extensionSet: md.ExtensionSet.gitHubFlavored,
@@ -70,6 +88,29 @@ index 1234567..89abcde 100644
       expect(meta.style?.color, _theme.diffMetaStyle?.color);
       final header = text.firstWhere((s) => s.text.contains('--- a/README.md'));
       expect(header.style?.color, _theme.diffMetaStyle?.color);
+    });
+
+    test('detects language from diff --git without plus-plus line', () {
+      final text = _render(
+        '```diff\ndiff --git a/main.dart b/main.dart\n@@ -1 +1 @@\n-old\n+new\n```',
+      );
+      expect(text.any((s) => s.text.contains('new')), isTrue);
+    });
+
+    test('falls back to plain tokens when highlighter throws', () {
+      final text = _render(
+        '```diff\n+ final x = 1;\n```',
+        highlighter: const _ThrowingHighlighter(),
+      );
+      expect(text.any((s) => s.text.contains('final x')), isTrue);
+    });
+
+    test('renders content when highlighter returns no tokens', () {
+      final text = _render(
+        '```diff\n+ final x = 1;\n```',
+        highlighter: const _EmptyTokenHighlighter(),
+      );
+      expect(text.any((s) => s.text.contains('final x')), isTrue);
     });
 
     test('context lines render plain', () {

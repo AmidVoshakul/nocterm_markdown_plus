@@ -1081,9 +1081,13 @@ class MarkdownTheme {
 
 /// A dark/light theme pair resolved by terminal brightness.
 class AdaptiveMarkdownTheme {
+  /// Creates a pair of [dark] and [light] markdown themes.
   const AdaptiveMarkdownTheme({required this.dark, required this.light});
 
+  /// The theme used on dark terminals.
   final MarkdownTheme dark;
+
+  /// The theme used on light terminals.
   final MarkdownTheme light;
 
   /// Resolves the theme for the given [brightness].

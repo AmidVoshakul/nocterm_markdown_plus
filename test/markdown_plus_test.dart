@@ -1,5 +1,5 @@
 import 'package:markdown/markdown.dart' as md;
-import 'package:nocterm/nocterm.dart';
+import 'package:nocterm/nocterm.dart' hide isEmpty, isNotEmpty;
 import 'package:nocterm_markdown_plus/nocterm_markdown_plus.dart';
 import 'package:test/test.dart';
 
@@ -401,6 +401,52 @@ void main() {
       });
     });
   });
+
+  group('cache invalidation', () {
+    tearDown(() => NoColor.setOverride(null));
+
+    test('theme change invalidates cached spans', () {
+      final cache = <String, List<InlineSpan>>{};
+      final node = parseDocument('hello').first;
+      final v1 = MarkdownPlusVisitor(
+        MarkdownThemes.catppuccinMocha,
+        blockCache: cache,
+      );
+      v1.visitBlock(node);
+      expect(cache, isNotEmpty);
+
+      final v2 = MarkdownPlusVisitor(MarkdownThemes.nord, blockCache: cache);
+      final spans = v2.visitBlock(node);
+      expect(identical(spans, cache.values.first), isFalse);
+    });
+
+    test('NO_COLOR toggle invalidates cached spans', () {
+      NoColor.setOverride(false);
+      final cache = <String, List<InlineSpan>>{};
+      final node = parseDocument('hello').first;
+      final v1 = MarkdownPlusVisitor(
+        MarkdownThemes.catppuccinMocha,
+        blockCache: cache,
+      );
+      v1.visitBlock(node);
+      expect(cache, isNotEmpty);
+
+      NoColor.setOverride(true);
+      final v2 = MarkdownPlusVisitor(
+        MarkdownThemes.catppuccinMocha,
+        blockCache: cache,
+      );
+      final spans = v2.visitBlock(node);
+      expect(spans!.any(_hasAnyColor), isFalse);
+    });
+  });
+}
+
+bool _hasAnyColor(InlineSpan span) {
+  if (span is! TextSpan) return false;
+  final style = span.style;
+  if (style?.color != null || style?.backgroundColor != null) return true;
+  return (span.children ?? const <InlineSpan>[]).any(_hasAnyColor);
 }
 
 md.Element _tr(List<String> cells) =>
