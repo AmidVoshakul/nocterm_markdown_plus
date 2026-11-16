@@ -354,6 +354,12 @@ abstract final class MarkdownThemes {
     name: 'nocterm',
   );
 
+  /// nocterm's own default light theme, expressed as a markdown theme.
+  static final MarkdownTheme noctermLight = MarkdownTheme.fromTuiTheme(
+    TuiThemeData.light,
+    name: 'nocterm-light',
+  );
+
   // ===== Light themes =====
 
   /// Catppuccin Latte — light companion of Mocha.
@@ -515,7 +521,7 @@ abstract final class MarkdownThemes {
     githubLight,
     oneLight,
     ayuLight,
-    MarkdownTheme.fromTuiTheme(TuiThemeData.light, name: 'nocterm-light'),
+    noctermLight,
   ];
 
   /// Every built-in preset (dark + light) in gallery order.

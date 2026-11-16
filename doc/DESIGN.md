@@ -5,7 +5,7 @@
 ## 1. Positioning (D1)
 
 Universal **themed** markdown for nocterm: documents, help screens, README rendering in TUI apps.
-Non-goals v1: streaming/incremental rendering, own markdown parser, Flutter compatibility, terminal images.
+Non-goals v1: streaming/incremental rendering, own markdown parser, Flutter compatibility. Terminal images are supported since 0.2.0 (block-level `Image` components).
 
 Market validation (2026-11-12): nocterm 167k downloads/mo, 413★ GitHub, 21 nocterm-* packages,
 **zero nocterm markdown packages on pub.dev**, demand signals in nocterm issues #45/#105, cross-ecosystem
@@ -23,6 +23,10 @@ proof (popular terminal renderers, ~28k stars each).
 | D6 | Front matter: skip by default, `'front_matter'` builder tag | Styled metadata block (new theme slots) | It is app metadata, not prose; zero API growth, builders give opt-in rendering |
 | D7 | NO_COLOR as a single choke point in `MarkdownStyle.toTextStyle()` | Global registry mirroring file_color's `TerminalColors` | Render-time check covers every slot, diff backgrounds and syntax tokens uniformly; builders' own spans stay untouched |
 | D8 | `dimmed()` blends colours toward the page background | Brightness × 0.5 | Preserves hue on light/dark themes; flags/glyphs/page background unchanged; composes with `quantizedToAnsi256` |
+| D9 | Images render as block-level components, not inline spans (default protocol: unicodeBlocks for reliability) | WidgetSpan (unavailable in nocterm) / ASCII art | Nocterm has no WidgetSpan, so a standalone image paragraph becomes its own component interleaved in a Column; mixed paragraphs keep the `[Image: alt]` placeholder; per-tag `img` builder still overrides |
+| D10 | Hybrid mermaid rendering: orthogonal A* router for flowcharts + diagram-specific renderers for non-rectangular types | Pure generic rasterizer / full rewrite | Generic rasterizer can't render pie/gantt/sankey/gitgraph/mindmap/journey meaningfully; mermaid_core stays (solid parser+layout); protected cells prevent box corruption; A* with turn penalty gives clean Manhattan paths; diagram-specific renderers read mermaid_core's parsed model (pie → horizontal bar legend) |
+| D11 | `MarkdownTheme.fromPalette` — build a theme from base colors, reusing `fromTuiTheme` derivation | Separate derivation logic | DRY: palette is normalized into a `TuiThemeData` and delegated; defaults are catppuccin-like for both light/dark |
+| D12 | Code/mermaid backgrounds merge into page background by default | Surface-colored boxes for code blocks | Terminal UIs look cleaner without contrasting rectangles; built-in presets already did this, `fromTuiTheme` now matches; surface reserved for elevated widgets |
 
 ## 3. Key findings (Phase 0 spike)
 
@@ -91,8 +95,8 @@ data/theme/width, mirroring core `MarkdownText`).
 - tables: core's unicode-width grid algorithm, cells as **styled spans** (core emits one flat span)
 - links `text [url]`, hr to maxWidth, images `[Image: alt]`
 
-`CodeHighlighter` interface + `PlainHighlighter` (default, phase 1) + `SyntaxCoreHighlighter` (phase 3,
-wraps `syntax_core`, try/catch unknown-language fallback).
+`CodeHighlighter` interface + `SyntaxCoreHighlighter` (default, wraps `syntax_core`, try/catch
+unknown-language fallback) + `PlainHighlighter` (opt-in, no dependencies).
 
 Unicode width util vendored from nocterm core (MIT) with attribution in LICENSE.
 
@@ -104,9 +108,8 @@ lib/src/markdown_plus.dart
 lib/src/theme/{markdown_theme,presets}.dart
 lib/src/render/{markdown_visitor,code_block_renderer,table_renderer}.dart
 lib/src/highlight/{code_highlighter,syntax_core_highlighter}.dart
-lib/src/highlight/syntax_core_highlighter.dart   (phase 3)
 lib/src/util/unicode_width.dart                  (vendored, MIT)
-example/demo.dart                                 (theme switcher)
+example/nocterm_markdown_plus_example.dart         (gallery + streaming demo)
 test/                                             (unit + widget via nocterm test harness)
 ```
 
@@ -116,6 +119,10 @@ highlighting adapter) ships in a single 0.1.0 release.
 
 ### Update log
 
+- **Seamless backgrounds (0.2.0):** code blocks and mermaid diagrams now blend into the page background in `fromTuiTheme` (surface no longer used for code backgrounds), matching built-in presets.
+- **Custom palettes (0.2.0):** `MarkdownTheme.fromPalette(...)` builds a full theme from a handful of base colors, reusing `fromTuiTheme` derivation; defaults are catppuccin-like for light/dark.
+- **Mermaid rendering (0.2.0):** orthogonal A* edge routing for flowcharts (turn-penalized Manhattan paths, node cells protected so edges never overwrite box borders/labels); diagram-specific renderer abstraction with `PieRenderer` PoC (horizontal bar legend, fixed 20-cell width); dispatcher in `MermaidRenderer` by `DiagramType`; fallback to source code preserved. Protected-cell fix + A* + pie validated on 15 diagram types.
+- **Images (0.2.0):** standalone image paragraphs render as nocterm `Image` components (Kitty/iTerm2/Sixel/Unicode-blocks, auto-detected); file/https/data-URI sources; `renderImages`/`imageMaxWidth`/`imageProtocol` params; mixed paragraphs keep the `[Image: alt]` placeholder; per-tag `img` builder still overrides.
 - **0.1.2 — NO_COLOR + dimmed + diff rewrite:** `NoColor` honored at render time through `MarkdownStyle.toTextStyle()`; `MarkdownTheme.dimmed()` for LLM thinking output; diff renderer now uses coloured backgrounds + syntax highlighting with language detection; duplicated `blend` helper consolidated into `blendColors`; coverage gate excludes vendored unicode util (87%).
 - **Front matter split (0.2.0):** `parseDocument` peels a leading
   `---`…`---` YAML block into a `front_matter` element before the parser

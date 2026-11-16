@@ -4,9 +4,21 @@ import "package:nocterm/nocterm.dart";
 import '../render/code_block_renderer.dart';
 import '../theme/markdown_theme.dart';
 import 'ascii_canvas.dart';
+import 'pie_renderer.dart';
 import 'scene_rasterizer.dart';
 
 /// Renders Mermaid diagrams (`mermaid` fenced blocks) as ASCII art.
+/// Diagram types whose generic ASCII rendering is not yet acceptable.
+/// These fall back to a source listing until a diagram-specific renderer
+/// lands (see DESIGN.md D10, stage 2).
+const _fallbackTypes = <DiagramType>{
+  DiagramType.gantt,
+  DiagramType.sankey,
+  DiagramType.gitGraph,
+  DiagramType.mindmap,
+  DiagramType.journey,
+};
+
 class MermaidRenderer {
   const MermaidRenderer._();
 
@@ -16,9 +28,25 @@ class MermaidRenderer {
     int? maxWidth,
   }) {
     try {
+      final type = detectDiagramType(code);
+      if (_fallbackTypes.contains(type)) {
+        return CodeBlockRenderer.render(
+          code: code,
+          language: 'mermaid',
+          theme: theme,
+        );
+      }
+      if (type == DiagramType.pie) {
+        return PieRenderer.render(code: code, theme: theme, maxWidth: maxWidth);
+      }
       final mermaid = const Mermaid(measurer: ApproximateTextMeasurer());
       final scene = mermaid.render(code);
-      final canvas = SceneRasterizer.rasterize(scene, maxWidth: maxWidth);
+      final orthogonal = type == DiagramType.flowchart;
+      final canvas = SceneRasterizer.rasterize(
+        scene,
+        maxWidth: maxWidth,
+        orthogonalEdges: orthogonal,
+      );
       return _toSpan(canvas, theme);
     } catch (_) {
       return CodeBlockRenderer.render(

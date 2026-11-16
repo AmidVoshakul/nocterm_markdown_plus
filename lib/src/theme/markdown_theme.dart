@@ -577,9 +577,9 @@ class MarkdownTheme {
       emphStyle: MarkdownStyle.all(data.warning).copyWith(italic: true),
       delStyle: MarkdownStyle.all(data.outline).copyWith(strikethrough: true),
       codeStyle: MarkdownStyle.all(data.success),
-      codeBackgroundStyle: MarkdownStyle(background: data.surface),
+      codeBackgroundStyle: MarkdownStyle(background: data.background),
       codeBlockStyle: MarkdownStyle.all(data.onSurface),
-      codeBlockBackgroundStyle: MarkdownStyle(background: data.surface),
+      codeBlockBackgroundStyle: MarkdownStyle(background: data.background),
       blockQuoteStyle: MarkdownStyle.all(data.outline).copyWith(italic: true),
       blockQuoteBarStyle: MarkdownStyle.all(data.secondary),
       linkStyle: MarkdownStyle.all(primary).copyWith(underline: true),
@@ -616,11 +616,11 @@ class MarkdownTheme {
       footnoteDefinitionStyle: MarkdownStyle.all(data.outline),
       diffAddedStyle: MarkdownStyle(
         color: data.onSurface,
-        background: blendColors(data.surface, accent(data.success), 0.22),
+        background: blendColors(data.background, accent(data.success), 0.22),
       ),
       diffRemovedStyle: MarkdownStyle(
         color: data.onSurface,
-        background: blendColors(data.surface, accent(data.error), 0.22),
+        background: blendColors(data.background, accent(data.error), 0.22),
       ),
       diffHunkStyle: MarkdownStyle.all(accent(data.warning)),
       diffMetaStyle: MarkdownStyle.all(data.outline),
@@ -870,6 +870,73 @@ class MarkdownTheme {
     syntaxTheme,
   ]);
 
+  /// Builds a markdown theme from a small palette of base colors.
+  ///
+  /// Useful when the host app has its own color scheme (e.g. a terminal
+  /// color scheme) that is not one of nocterm's built-in presets: pass the
+  /// colors you care about and the rest is derived with the same rules as
+  /// [fromTuiTheme]. Unspecified colors fall back to a sensible dark or
+  /// light default based on [brightness].
+  factory MarkdownTheme.fromPalette({
+    String? name,
+    Brightness brightness = Brightness.dark,
+    Color? background,
+    Color? onBackground,
+    Color? surface,
+    Color? onSurface,
+    Color? primary,
+    Color? secondary,
+    Color? success,
+    Color? warning,
+    Color? error,
+    Color? outline,
+  }) {
+    final light = brightness == Brightness.light;
+    final bg =
+        background ??
+        (light ? const Color(0xFFFFFFFF) : const Color(0xFF1E1E2E));
+    final onBg =
+        onBackground ??
+        (light ? const Color(0xFF1E1E2E) : const Color(0xFFCDD6F4));
+    final surf =
+        surface ?? (light ? const Color(0xFFF5F5F5) : const Color(0xFF313244));
+    final onSurf = onSurface ?? onBg;
+    final prim =
+        primary ?? (light ? const Color(0xFF1E66F5) : const Color(0xFF89B4FA));
+    final sec =
+        secondary ??
+        (light ? const Color(0xFF8839EF) : const Color(0xFFCBA6F7));
+    final succ =
+        success ?? (light ? const Color(0xFF40A02B) : const Color(0xFFA6E3A1));
+    final warn =
+        warning ?? (light ? const Color(0xFFDF8E1D) : const Color(0xFFF9E2AF));
+    final err =
+        error ?? (light ? const Color(0xFFD20F39) : const Color(0xFFF38BA8));
+    final out =
+        outline ?? (light ? const Color(0xFF9CA0B0) : const Color(0xFF6C7086));
+    final data = TuiThemeData(
+      brightness: brightness,
+      background: bg,
+      onBackground: onBg,
+      surface: surf,
+      onSurface: onSurf,
+      primary: prim,
+      onPrimary: bg,
+      secondary: sec,
+      onSecondary: bg,
+      error: err,
+      onError: bg,
+      success: succ,
+      onSuccess: bg,
+      warning: warn,
+      onWarning: bg,
+      outline: out,
+      outlineVariant: out,
+      selectionColor: prim,
+    );
+    return MarkdownTheme.fromTuiTheme(data, name: name ?? 'palette');
+  }
+
   /// Returns this theme with every color quantized to the xterm-256 palette.
   /// Suitable for terminals without truecolor support.
   MarkdownTheme quantizedToAnsi256() {
@@ -1019,6 +1086,7 @@ class AdaptiveMarkdownTheme {
   final MarkdownTheme dark;
   final MarkdownTheme light;
 
+  /// Resolves the theme for the given [brightness].
   MarkdownTheme resolve(Brightness brightness) =>
       brightness == Brightness.dark ? dark : light;
 }

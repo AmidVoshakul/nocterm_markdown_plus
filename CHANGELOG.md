@@ -1,12 +1,28 @@
 # Changelog
 
+## 0.2.0
+
+### Added
+
+- **List markers decoupled:** `showListMarkers` parameter on `MarkdownPlus` / `MarkdownPlusVisitor` controls bullets and ordered numbers independently of heading markers (`showMarkers`), so headings stay clean while lists keep their markers.
+- **Custom palettes:** `MarkdownTheme.fromPalette(...)` builds a full theme from a handful of base colors, reusing `fromTuiTheme` derivation; defaults are catppuccin-like for light/dark.
+- **Mermaid rendering:** orthogonal A* edge routing for flowcharts (Manhattan paths, protected cells prevent box corruption); diagram-specific `PieRenderer` (horizontal bar legend); dispatcher by diagram type; graceful fallback to source for unsupported types.
+- **Image support:** standalone image paragraphs (`![alt](src)`) render as
+  real terminal graphics via nocterm (Kitty / iTerm2 / Sixel /
+  Unicode-blocks, default protocol: unicodeBlocks for reliability). File, `https://` and `data:` URIs are
+  supported; `renderImages`, `imageMaxWidth` and `imageProtocol` parameters
+  control rendering. Mixed paragraphs keep the `[Image: alt]` placeholder;
+  a per-tag `img` builder still overrides.
+
+### Changed
+
+- **Seamless backgrounds:** code blocks and mermaid diagrams now blend into the page background by default (previously `fromTuiTheme` used the surface color, creating visible boxes). Built-in presets already did this; system themes now match.
+
 ## 0.1.3
 
 ### Added
 
-- `example/main.dart` is now a runnable entry point (was only an
-  `export`), so pub.dev awards the "package has an example" point
-  (160/160 pub points).
+- `example/nocterm_markdown_plus_example.dart` is now a runnable entry point (renamed from `demo.dart`).
 
 ### Changed
 
@@ -14,7 +30,6 @@
   `doc/` from the published archive.
 
 ## 0.1.2
-
 
 ### Added
 

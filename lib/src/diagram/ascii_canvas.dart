@@ -29,6 +29,11 @@ class AsciiCanvas {
   final int height;
   final List<List<_Cell>> _cells;
 
+  /// Cells occupied by node boxes (border + interior). Edge segments skip
+  /// these so an edge can never overwrite a box; arrowheads are still drawn
+  /// on top (they mark the connection point on the box border).
+  final Set<(int, int)> _protected = <(int, int)>{};
+
   void put(int x, int y, String char, DiagramCellStyle style) {
     if (x < 0 || y < 0 || x >= width || y >= height) return;
     _cells[y][x] = _Cell(char, style);
@@ -69,6 +74,11 @@ class AsciiCanvas {
       put(x, row, '│', style);
       put(x + w - 1, row, '│', style);
     }
+    for (var yy = y; yy < y + h; yy++) {
+      for (var xx = x; xx < x + w; xx++) {
+        _protected.add((xx, yy));
+      }
+    }
   }
 
   /// Draws one straight segment, choosing the matching box-drawing glyph.
@@ -77,6 +87,7 @@ class AsciiCanvas {
       final from = x1 < x2 ? x1 : x2;
       final to = x1 < x2 ? x2 : x1;
       for (var x = from; x <= to; x++) {
+        if (_protected.contains((x, y1))) continue;
         put(x, y1, _mergeLine(_cells[y1][x].char, '─'), style);
       }
       return;
@@ -85,6 +96,7 @@ class AsciiCanvas {
       final from = y1 < y2 ? y1 : y2;
       final to = y1 < y2 ? y2 : y1;
       for (var y = from; y <= to; y++) {
+        if (_protected.contains((x1, y))) continue;
         put(x1, y, _mergeLine(_cells[y][x1].char, '│'), style);
       }
       return;
@@ -98,9 +110,11 @@ class AsciiCanvas {
     final sy = y1 < y2 ? 1 : -1;
     var err = dx - dy;
     while (true) {
-      final grapheme = dx >= dy ? '╱' : '╲';
-      final flipped = (sx > 0) != (sy > 0);
-      put(x, y, flipped ? (grapheme == '╱' ? '╲' : '╱') : grapheme, style);
+      if (!_protected.contains((x, y))) {
+        final grapheme = dx >= dy ? '╱' : '╲';
+        final flipped = (sx > 0) != (sy > 0);
+        put(x, y, flipped ? (grapheme == '╱' ? '╲' : '╱') : grapheme, style);
+      }
       if (x == x2 && y == y2) break;
       final e2 = 2 * err;
       if (e2 > -dy) {

@@ -71,11 +71,17 @@ class TableRenderer {
           for (final cellChild in child.children ?? const <md.Node>[]) {
             if (cellChild is md.Element &&
                 (cellChild.tag == 'th' || cellChild.tag == 'td')) {
+              final alignAttr = cellChild.attributes['align'];
+              final cellAlign = switch (alignAttr) {
+                'right' => _Align.right,
+                'center' => _Align.center,
+                _ => _Align.left,
+              };
               cellSpans.add(
                 _Cell(
                   childrenOf(visitor.visitChildren(cellChild)),
                   cellChild.textContent.trim(),
-                  _Align.left,
+                  cellAlign,
                 ),
               );
             }
@@ -101,7 +107,7 @@ class TableRenderer {
             _Cell(
               row.cells[c].spans,
               row.cells[c].plain,
-              c < alignments.length ? alignments[c] : _Align.left,
+              c < alignments.length ? alignments[c] : row.cells[c].align,
             ),
         ], row.isHeader),
     ];

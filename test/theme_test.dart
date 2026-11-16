@@ -6,6 +6,27 @@ import 'package:nocterm_markdown_plus/nocterm_markdown_plus.dart';
 import 'package:test/test.dart';
 
 void main() {
+  group('fromPalette', () {
+    test('builds a dark theme from a single color', () {
+      final t = MarkdownTheme.fromPalette(
+        name: 'custom',
+        brightness: Brightness.dark,
+        primary: const Color(0xFFFF00FF),
+      );
+      expect(t.name, 'custom');
+      expect(t.brightness, Brightness.dark);
+      expect(t.h1Style?.color, const Color(0xFFFF00FF));
+      expect(t.textStyle, isNotNull);
+    });
+
+    test('builds a light theme with defaults', () {
+      final t = MarkdownTheme.fromPalette(brightness: Brightness.light);
+      expect(t.brightness, Brightness.light);
+      expect(t.background, isNotNull);
+      expect(t.textStyle?.color, isNotNull);
+    });
+  });
+
   group('dimmed', () {
     test('blends foreground toward background', () {
       const style = MarkdownStyle.all(Color(0xFFFFFFFF));
@@ -177,6 +198,26 @@ void main() {
   });
 
   group('fromTuiTheme', () {
+    test('code blocks blend into the page background', () {
+      for (final data in [
+        TuiThemeData.dark,
+        TuiThemeData.light,
+        TuiThemeData.nord,
+        TuiThemeData.dracula,
+      ]) {
+        final t = MarkdownTheme.fromTuiTheme(data);
+        expect(
+          t.codeBlockBackgroundStyle?.background,
+          t.background,
+          reason: '${t.name} code block bg should match page bg',
+        );
+        expect(
+          t.codeBackgroundStyle?.background,
+          t.background,
+          reason: '${t.name} inline code bg should match page bg',
+        );
+      }
+    });
     test('maps all nocterm core themes', () {
       for (final data in [
         TuiThemeData.dark,

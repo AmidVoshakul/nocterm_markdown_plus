@@ -24,12 +24,15 @@ List<_Styled> _styledText(InlineSpan span) {
 
 MarkdownTheme get _theme => MarkdownThemes.catppuccinMocha;
 
-List<_Styled> _render(String markdown) {
+List<_Styled> _render(String markdown, {CodeHighlighter? highlighter}) {
   final doc = md.Document(
     extensionSet: md.ExtensionSet.gitHubFlavored,
     encodeHtml: false,
   );
-  final spans = MarkdownPlusVisitor(_theme).visitNodes(doc.parse(markdown));
+  final spans = MarkdownPlusVisitor(
+    _theme,
+    highlighter: highlighter,
+  ).visitNodes(doc.parse(markdown));
   return spans.expand(_styledText).toList();
 }
 
@@ -79,6 +82,51 @@ index 1234567..89abcde 100644
       final text = _render('```patch\n+ added in patch\n```');
       final line = text.firstWhere((s) => s.text.contains('added in patch'));
       expect(line.style?.color, _theme.diffAddedStyle?.color);
+    });
+
+    test('diff with syntax highlighting (dart)', () {
+      final text = _render(
+        '```diff\n--- a/lib/main.dart\n+++ b/lib/main.dart\n@@ -1,3 +1,3 @@\n void main() {\n-  runApp(const OldApp());\n+  runApp(const NewApp());\n }\n```',
+        highlighter: const SyntaxCoreHighlighter(),
+      );
+      final line = text.firstWhere((s) => s.text.contains('NewApp'));
+      expect(line.style?.backgroundColor, isNotNull);
+    });
+
+    test('diff with syntax highlighting (python)', () {
+      final text = _render(
+        '```diff\n--- a/x.py\n+++ b/x.py\n@@ -1 +1 @@\n-def foo():\n+def bar():\n```',
+        highlighter: const SyntaxCoreHighlighter(),
+      );
+      final line = text.firstWhere((s) => s.text.contains('bar'));
+      expect(line.style?.backgroundColor, isNotNull);
+    });
+
+    test('diff with PlainHighlighter fallback', () {
+      final text = _render(
+        '```diff\n--- a/x.dart\n+++ b/x.dart\n@@ -1 +1 @@\n-old\n+new\n```',
+        highlighter: const PlainHighlighter(),
+      );
+      final line = text.firstWhere((s) => s.text.contains('new'));
+      expect(line.style?.backgroundColor, isNotNull);
+    });
+
+    test('diff language detection returns null for unknown extension', () {
+      final text = _render(
+        '```diff\n--- a/x.unknownext\n+++ b/x.unknownext\n@@ -1 +1 @@\n-old\n+new\n```',
+        highlighter: const SyntaxCoreHighlighter(),
+      );
+      final line = text.firstWhere((s) => s.text.contains('new'));
+      expect(line.style?.backgroundColor, isNotNull);
+    });
+
+    test('diff with /dev/null (deleted file) falls back to no language', () {
+      final text = _render(
+        '```diff\n--- a/x.dart\n+++ /dev/null\n@@ -1 +0,0 @@\n-deleted\n```',
+        highlighter: const SyntaxCoreHighlighter(),
+      );
+      final line = text.firstWhere((s) => s.text.contains('deleted'));
+      expect(line.style?.backgroundColor, isNotNull);
     });
 
     test('non-diff code blocks still render as code', () {

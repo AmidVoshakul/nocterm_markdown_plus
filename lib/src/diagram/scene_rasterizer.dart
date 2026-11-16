@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:mermaid_core/mermaid_core.dart';
 
 import 'ascii_canvas.dart';
+import 'orthogonal_router.dart';
 
 /// Rasterizes a mermaid-core `RenderScene` onto an [AsciiCanvas].
 ///
@@ -12,7 +13,11 @@ import 'ascii_canvas.dart';
 class SceneRasterizer {
   const SceneRasterizer._();
 
-  static AsciiCanvas rasterize(RenderScene scene, {int? maxWidth}) {
+  static AsciiCanvas rasterize(
+    RenderScene scene, {
+    int? maxWidth,
+    bool orthogonalEdges = false,
+  }) {
     final maxCols = maxWidth ?? 80;
     // Terminal cells are roughly 8x16 scene px. Map the scene at that base
     // scale so diagrams keep their natural proportions, and only shrink
@@ -88,6 +93,11 @@ class SceneRasterizer {
     // 2. Node boxes with their labels (sequence participants repeat at the
     // bottom; the first occurrence wins).
     final seenNodes = <String>{};
+    final nodeCellRects = <String, (int, int, int, int)>{};
+    assert(
+      nodeGroups.every((g) => g.id != null),
+      'flowchart node without id breaks orthogonal routing',
+    );
     for (final group in nodeGroups) {
       final body = _firstShape(group);
       if (body == null) continue;
@@ -124,6 +134,12 @@ class SceneRasterizer {
           y + h - 1,
         );
       }
+      if (group.id != null && !nodeCellRects.containsKey(group.id!)) {
+        nodeCellRects[group.id!] = (x, y, w, h);
+      }
+      if (label.isNotEmpty && group.id != null) {
+        nodeCellRects[group.id!] = (x, y, w, h);
+      }
       if (label.isNotEmpty) {
         final top = y + math.max(0, (h - labelLines.length) ~/ 2).toInt();
         for (var i = 0; i < labelLines.length; i++) {
@@ -154,8 +170,133 @@ class SceneRasterizer {
       _drawShape(canvas, shape, gx, gy, cellW, cellH, liftVerticalTop);
     }
 
-    // 4. Edges: paths flattened to polylines, arrowheads, message labels.
+    // 4. Edges: orthogonal A* routing for flowcharts, original paths otherwise.
     for (final group in edgeGroups) {
+      if (orthogonalEdges && group.edge != null) {
+        final meta = group.edge!;
+        final srcRect = nodeCellRects[meta.fromId];
+        final dstRect = nodeCellRects[meta.toId];
+        if (srcRect != null && dstRect != null) {
+          // Exit/entry sides based on relative position.
+          final (sx, sy, sw, sh) = srcRect;
+          final (tx, ty, tw, th) = dstRect;
+          final srcCx = sx + sw ~/ 2;
+          final srcCy = sy + sh ~/ 2;
+          final dstCx = tx + tw ~/ 2;
+          final dstCy = ty + th ~/ 2;
+          GridPoint start;
+          GridPoint end;
+          if ((dstCx - srcCx).abs() >= (dstCy - srcCy).abs()) {
+            // horizontal
+            if (dstCx >= srcCx) {
+              start = (sx + sw, srcCy);
+              end = (tx - 1 >= 0 ? tx - 1 : tx, dstCy);
+            } else {
+              start = (sx - 1 >= 0 ? sx - 1 : sx, srcCy);
+              end = (tx + tw, dstCy);
+            }
+          } else {
+            if (dstCy >= srcCy) {
+              start = (srcCx, sy + sh);
+              end = (dstCx, ty - 1 >= 0 ? ty - 1 : ty);
+            } else {
+              start = (srcCx, sy - 1 >= 0 ? sy - 1 : sy);
+              end = (dstCx, ty + th);
+            }
+          }
+          // Blocked set: all node rects + 1 cell padding.
+          final blocked = <GridPoint>{};
+          for (final r in nodeCellRects.values) {
+            final (rx, ry, rw, rh) = r;
+            for (var yy = ry - 1; yy <= ry + rh; yy++) {
+              for (var xx = rx - 1; xx <= rx + rw; xx++) {
+                if (xx >= 0 &&
+                    yy >= 0 &&
+                    xx < canvas.width &&
+                    yy < canvas.height) {
+                  blocked.add((xx, yy));
+                }
+              }
+            }
+          }
+
+          // Clamp to grid, nudging off any protected cell so an arrowhead
+          // never overwrites a box border.
+          (int, int) clampFree((int, int) p0) {
+            var x = p0.$1.clamp(0, canvas.width - 1);
+            var y = p0.$2.clamp(0, canvas.height - 1);
+            if (blocked.contains((x, y))) {
+              for (var d = 1; d <= 2; d++) {
+                for (final (dx, dy) in const [
+                  (1, 0),
+                  (-1, 0),
+                  (0, 1),
+                  (0, -1),
+                ]) {
+                  final nx = x + dx * d;
+                  final ny = y + dy * d;
+                  if (nx >= 0 &&
+                      ny >= 0 &&
+                      nx < canvas.width &&
+                      ny < canvas.height &&
+                      !blocked.contains((nx, ny))) {
+                    return (nx, ny);
+                  }
+                }
+              }
+            }
+            return (x, y);
+          }
+
+          start = clampFree(start);
+          end = clampFree(end);
+
+          // Allow start/end cells.
+          blocked.remove(start);
+          blocked.remove(end);
+
+          final path = routeOrthogonal(
+            start: start,
+            end: end,
+            width: canvas.width,
+            height: canvas.height,
+            blocked: blocked,
+          );
+          if (path != null && path.length >= 2) {
+            for (var i = 0; i < path.length - 1; i++) {
+              canvas.drawSegment(
+                path[i].$1,
+                path[i].$2,
+                path[i + 1].$1,
+                path[i + 1].$2,
+                DiagramCellStyle.edge,
+              );
+            }
+            // Arrowhead at end.
+            final last = path[path.length - 1];
+            final prev = path[path.length - 2];
+            canvas.drawArrow(
+              last.$1,
+              last.$2,
+              _directionOf(
+                Point(prev.$1.toDouble(), prev.$2.toDouble()),
+                Point(last.$1.toDouble(), last.$2.toDouble()),
+              ),
+              DiagramCellStyle.edge,
+            );
+            // Message label (if any text in edge group).
+            _drawTextRun(
+              canvas,
+              group.children.whereType<SceneText>().toList(),
+              gx,
+              gy,
+              DiagramCellStyle.label,
+            );
+            continue;
+          }
+          // Fall through to original path if routing failed.
+        }
+      }
       final path = group.children.whereType<SceneShape>().firstWhereOrNull(
         (s) => s.geometry is PathGeometry,
       );

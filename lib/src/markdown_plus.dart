@@ -1,9 +1,11 @@
+import 'package:markdown/markdown.dart' as md;
 import 'package:nocterm/nocterm.dart';
 
 import 'highlight/code_highlighter.dart';
 import 'highlight/syntax_core_highlighter.dart';
 import 'parse/markdown_document.dart';
 import 'render/markdown_visitor.dart';
+import 'render/image_block.dart';
 import 'theme/markdown_theme.dart';
 import 'theme/presets.dart';
 
@@ -27,9 +29,13 @@ class MarkdownPlus extends StatefulComponent {
     this.theme,
     this.highlighter = const SyntaxCoreHighlighter(),
     this.showMarkers = true,
+    this.showListMarkers = true,
     this.lineNumbers = false,
     this.builders,
     this.maxWidth,
+    this.renderImages = true,
+    this.imageMaxWidth = 40,
+    this.imageProtocol = ImageProtocol.unicodeBlocks,
     this.ansi256 = false,
     this.textAlign = TextAlign.left,
     this.softWrap = true,
@@ -51,6 +57,17 @@ class MarkdownPlus extends StatefulComponent {
   /// Explicit content width; null derives it from the layout constraints.
   final int? maxWidth;
 
+  /// Whether markdown images are rendered as real terminal images. When
+  /// false, every image falls back to the `[Image: alt]` placeholder.
+  final bool renderImages;
+
+  /// Maximum width (in cells) for a rendered image. Larger source images
+  /// are scaled down to fit.
+  final int? imageMaxWidth;
+
+  /// Preferred image protocol; null auto-detects the best one.
+  final ImageProtocol? imageProtocol;
+
   /// Quantize theme colors to the xterm-256 palette (for apps targeting
   /// 8-bit terminals or a retro look).
   final bool ansi256;
@@ -60,10 +77,13 @@ class MarkdownPlus extends StatefulComponent {
   /// pass `const PlainHighlighter()` for unhighlighted rendering.
   final CodeHighlighter? highlighter;
 
-  /// Whether to render markdown source markers (heading `#`, quote `│`,
-  /// list bullets and ordered numbers). Task checkboxes always render —
-  /// they carry state, not syntax.
+  /// Whether to render markdown source markers (heading `#`, quote `│`).
+  /// List bullets/numbers are controlled separately by [showListMarkers].
+  /// Task checkboxes always render — they carry state, not syntax.
   final bool showMarkers;
+
+  /// Whether to render list bullets and ordered numbers.
+  final bool showListMarkers;
 
   /// Whether to prefix code block lines with line numbers.
   final bool lineNumbers;
@@ -79,42 +99,95 @@ class MarkdownPlus extends StatefulComponent {
 
 class _MarkdownPlusState extends State<MarkdownPlus> {
   final _blockCache = <String, List<InlineSpan>>{};
-  List<InlineSpan> _spans = const [];
+  List<_Block> _blocks = const [];
   String? _lastData;
   MarkdownTheme? _lastTheme;
   CodeHighlighter? _lastHighlighter;
   bool? _lastAnsi256;
   Map<String, MarkdownPlusBuilder>? _lastBuilders;
   bool? _lastShowMarkers;
+  bool? _lastShowListMarkers;
   bool? _lastLineNumbers;
   int? _lastMaxWidth;
+  bool? _lastRenderImages;
+  int? _lastImageMaxWidth;
+  ImageProtocol? _lastImageProtocol;
 
-  List<InlineSpan> _parseMarkdown(int? maxWidth) {
+  List<_Block> _parseBlocks(int? maxWidth) {
     final nodes = parseDocument(component.data);
     final theme = component.theme ?? MarkdownThemes.catppuccinMocha;
+    final effectiveTheme = component.ansi256
+        ? theme.quantizedToAnsi256()
+        : theme;
     final visitor = MarkdownPlusVisitor(
-      component.ansi256 ? theme.quantizedToAnsi256() : theme,
+      effectiveTheme,
       maxWidth: maxWidth,
       showMarkers: component.showMarkers,
+      showListMarkers: component.showListMarkers,
       highlighter: component.highlighter,
       lineNumbers: component.lineNumbers,
       builders: component.builders,
       blockCache: _blockCache,
     );
-    return visitor.visitNodes(nodes);
+    final blocks = <_Block>[];
+    for (final node in nodes) {
+      if (component.renderImages && component.builders?['img'] == null) {
+        final img = _standaloneImage(node);
+        if (img != null) {
+          final src = img.attributes['src'] ?? '';
+          blocks.add(
+            _ImageBlock(
+              src: src,
+              alt: img.attributes['alt'],
+              width: component.imageMaxWidth,
+              protocol: component.imageProtocol,
+              theme: effectiveTheme,
+            ),
+          );
+          continue;
+        }
+      }
+      final spans = visitor.visitBlock(node);
+      if (spans != null && spans.isNotEmpty) {
+        blocks.add(_TextBlock(spans));
+      }
+    }
+    if (blocks.isNotEmpty && blocks.last is _TextBlock) {
+      final last = blocks.last as _TextBlock;
+      blocks[blocks.length - 1] = _TextBlock(<InlineSpan>[
+        ...last.spans.sublist(0, last.spans.length - 1),
+        MarkdownPlusVisitor.trimTrailingNewlines(last.spans.last),
+      ]);
+    }
+    return blocks;
+  }
+
+  static md.Element? _standaloneImage(md.Node node) {
+    if (node is! md.Element || node.tag != 'p') return null;
+    final children = (node.children ?? const <md.Node>[])
+        .where((c) => !(c is md.Text && c.text.trim().isEmpty))
+        .toList();
+    if (children.length != 1) return null;
+    final c = children.first;
+    if (c is! md.Element || c.tag != 'img') return null;
+    return c;
   }
 
   /// Inputs baked into cached block spans: changing any of them must drop
   /// the memo cache, not just trigger a re-render.
   bool _needsCacheReset(int? maxWidth) =>
       component.showMarkers != _lastShowMarkers ||
+      component.showListMarkers != _lastShowListMarkers ||
       component.lineNumbers != _lastLineNumbers ||
       component.ansi256 != _lastAnsi256 ||
       !identical(component.builders, _lastBuilders) ||
       (component.builders?.length ?? 0) != (_lastBuilders?.length ?? 0) ||
       !identical(component.highlighter, _lastHighlighter) ||
       component.theme != _lastTheme ||
-      maxWidth != _lastMaxWidth;
+      maxWidth != _lastMaxWidth ||
+      component.renderImages != _lastRenderImages ||
+      component.imageMaxWidth != _lastImageMaxWidth ||
+      component.imageProtocol != _lastImageProtocol;
 
   bool _needsReparse(int? maxWidth) =>
       component.data != _lastData ||
@@ -122,11 +195,15 @@ class _MarkdownPlusState extends State<MarkdownPlus> {
       component.theme != _lastTheme ||
       !identical(component.highlighter, _lastHighlighter) ||
       component.showMarkers != _lastShowMarkers ||
+      component.showListMarkers != _lastShowListMarkers ||
       component.lineNumbers != _lastLineNumbers ||
       component.ansi256 != _lastAnsi256 ||
       !identical(component.builders, _lastBuilders) ||
       (component.builders?.length ?? 0) != (_lastBuilders?.length ?? 0) ||
-      maxWidth != _lastMaxWidth;
+      maxWidth != _lastMaxWidth ||
+      component.renderImages != _lastRenderImages ||
+      component.imageMaxWidth != _lastImageMaxWidth ||
+      component.imageProtocol != _lastImageProtocol;
 
   @override
   Component build(BuildContext context) {
@@ -148,17 +225,63 @@ class _MarkdownPlusState extends State<MarkdownPlus> {
           _lastAnsi256 = component.ansi256;
           _lastBuilders = component.builders;
           _lastShowMarkers = component.showMarkers;
+          _lastShowListMarkers = component.showListMarkers;
           _lastLineNumbers = component.lineNumbers;
           _lastMaxWidth = maxWidth;
-          _spans = _parseMarkdown(maxWidth);
+          _lastRenderImages = component.renderImages;
+          _lastImageMaxWidth = component.imageMaxWidth;
+          _lastImageProtocol = component.imageProtocol;
+          _blocks = _parseBlocks(maxWidth);
         }
 
-        final content = RichText(
-          text: TextSpan(children: _spans),
-          textAlign: component.textAlign,
-          softWrap: component.softWrap,
-          overflow: component.overflow,
-          maxLines: component.maxLines,
+        final theme = component.theme ?? MarkdownThemes.catppuccinMocha;
+        final effectiveTheme = component.ansi256
+            ? theme.quantizedToAnsi256()
+            : theme;
+        // Group consecutive text blocks into a single RichText so the
+        // original inter-block spacing (one blank line) is preserved; images
+        // stay separate components because nocterm has no WidgetSpan.
+        final children = <Component>[];
+        final pending = <InlineSpan>[];
+        void flushText() {
+          if (pending.isEmpty) return;
+          children.add(
+            RichText(
+              text: TextSpan(children: List.of(pending)),
+              textAlign: component.textAlign,
+              softWrap: component.softWrap,
+              overflow: component.overflow,
+              maxLines: component.maxLines,
+            ),
+          );
+          pending.clear();
+        }
+
+        for (final block in _blocks) {
+          if (block is _TextBlock) {
+            pending.addAll(block.spans);
+          } else if (block is _ImageBlock) {
+            flushText();
+            children.add(
+              buildMarkdownImage(
+                src: block.src,
+                alt: block.alt,
+                width: block.width,
+                protocol: block.protocol,
+                theme: effectiveTheme,
+              ),
+            );
+            children.add(const SizedBox(height: 1));
+          }
+        }
+        flushText();
+        if (children.isEmpty) {
+          children.add(const SizedBox.shrink());
+        }
+        final content = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: children,
         );
         final background = component.theme?.background;
         if (background == null) return content;
@@ -166,4 +289,26 @@ class _MarkdownPlusState extends State<MarkdownPlus> {
       },
     );
   }
+}
+
+sealed class _Block {}
+
+class _TextBlock extends _Block {
+  _TextBlock(this.spans);
+  final List<InlineSpan> spans;
+}
+
+class _ImageBlock extends _Block {
+  _ImageBlock({
+    required this.src,
+    this.alt,
+    this.width,
+    this.protocol,
+    this.theme,
+  });
+  final String src;
+  final String? alt;
+  final int? width;
+  final ImageProtocol? protocol;
+  final MarkdownTheme? theme;
 }

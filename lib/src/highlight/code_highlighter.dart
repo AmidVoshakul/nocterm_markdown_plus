@@ -21,7 +21,10 @@ enum CodeTokenType {
 class CodeToken {
   const CodeToken(this.text, this.type);
 
+  /// The token text.
   final String text;
+
+  /// The token type.
   final CodeTokenType type;
 }
 

@@ -186,6 +186,59 @@ sequenceDiagram
       }
     });
 
+    test('flowchart with branching keeps box borders intact', () {
+      final doc = md.Document(
+        extensionSet: md.ExtensionSet.gitHubWeb,
+        encodeHtml: false,
+      );
+      final spans =
+          MarkdownPlusVisitor(
+            MarkdownThemes.catppuccinMocha,
+            maxWidth: 120,
+          ).visitNodes(
+            doc.parse('''```mermaid
+flowchart LR
+    A[Markdown] --> B[Parser]
+    A --> C[Visitor]
+    C --> D[Theme]
+    C --> E[Terminal]
+```'''),
+          );
+      final text = spans.map(_flat).join();
+      for (final label in [
+        'Markdown',
+        'Parser',
+        'Visitor',
+        'Theme',
+        'Terminal',
+      ]) {
+        expect(text, contains(label), reason: label);
+      }
+      expect(text, isNot(contains('\u2572\u2500\u2510')));
+    });
+
+    test('pie chart renders as aligned bar legend', () {
+      final doc = md.Document(
+        extensionSet: md.ExtensionSet.gitHubWeb,
+        encodeHtml: false,
+      );
+      final spans = MarkdownPlusVisitor(MarkdownThemes.catppuccinMocha)
+          .visitNodes(
+            doc.parse('''```mermaid
+pie title Pets
+    "Dogs" : 386
+    "Cats" : 85
+    "Rats" : 15
+```'''),
+          );
+      final text = spans.map(_flat).join();
+      expect(text, contains('Dogs'));
+      expect(text, contains('Cats'));
+      expect(text, contains('Rats'));
+      expect(text, contains('100.0%'));
+      expect(text, contains('\u2588'));
+    });
+
     test('invalid mermaid source falls back to a code block', () {
       final doc = md.Document(
         extensionSet: md.ExtensionSet.gitHubWeb,

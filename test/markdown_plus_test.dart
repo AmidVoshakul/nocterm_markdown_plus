@@ -7,6 +7,7 @@ MarkdownPlus _md(
   String data, {
   MarkdownTheme? theme,
   bool showMarkers = true,
+  bool showListMarkers = true,
   bool lineNumbers = false,
   Map<String, MarkdownPlusBuilder>? builders,
   int? maxWidth,
@@ -15,6 +16,7 @@ MarkdownPlus _md(
     data,
     theme: theme,
     showMarkers: showMarkers,
+    showListMarkers: showListMarkers,
     lineNumbers: lineNumbers,
     builders: builders,
     maxWidth: maxWidth,
@@ -47,6 +49,7 @@ void main() {
           _md(
             '- [x] done\n- [ ] todo\n1. first\n2. second',
             showMarkers: false,
+            showListMarkers: false,
           ),
         );
         final text = tester.terminalState.getText();

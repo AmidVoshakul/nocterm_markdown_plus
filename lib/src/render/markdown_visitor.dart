@@ -24,6 +24,7 @@ class MarkdownPlusVisitor {
     this.theme, {
     this.maxWidth,
     this.showMarkers = true,
+    this.showListMarkers = true,
     this.highlighter,
     this.lineNumbers = false,
     this.builders,
@@ -33,6 +34,7 @@ class MarkdownPlusVisitor {
   final MarkdownTheme theme;
   final int? maxWidth;
   final bool showMarkers;
+  final bool showListMarkers;
   final CodeHighlighter? highlighter;
   final bool lineNumbers;
 
@@ -64,6 +66,21 @@ class MarkdownPlusVisitor {
     }
     return spans;
   }
+
+  /// Renders a single top-level node into its span list, consulting the
+  /// shared block cache. Used by hosts that interleave non-text blocks.
+  List<InlineSpan>? visitBlock(md.Node node) {
+    final cached = _cachedSpansFor(node);
+    if (cached != null) return cached;
+    final span = visitNode(node);
+    if (span == null) return null;
+    final list = <InlineSpan>[span];
+    blockCache?[_cacheKeyFor(node)] = list;
+    return list;
+  }
+
+  static InlineSpan trimTrailingNewlines(InlineSpan span) =>
+      _trimTrailingNewlines(span);
 
   static InlineSpan _trimTrailingNewlines(InlineSpan span) {
     if (span is! TextSpan) return span;
@@ -172,12 +189,16 @@ class MarkdownPlusVisitor {
         return _codeBlock(element);
       case 'blockquote':
         final bar = showMarkers ? theme.blockQuoteBarStyle?.prefix ?? '│ ' : '';
+        final inner = visitChildren(element);
+        final trimmed = inner == null
+            ? null
+            : MarkdownPlusVisitor.trimTrailingNewlines(inner);
         return TextSpan(
           children: [
             if (bar.isNotEmpty)
               TextSpan(text: bar, style: _style(theme.blockQuoteBarStyle)),
-            ...childrenOf(visitChildren(element)),
-            const TextSpan(text: '\n'),
+            ?trimmed,
+            const TextSpan(text: '\n\n'),
           ],
           style: _style(theme.blockQuoteStyle),
         );
@@ -325,7 +346,7 @@ class MarkdownPlusVisitor {
       );
     } else if (state?.ordered ?? false) {
       state!.counter += 1;
-      if (showMarkers) {
+      if (showListMarkers) {
         children.add(
           TextSpan(
             text: '${state.counter}. ',
@@ -333,7 +354,7 @@ class MarkdownPlusVisitor {
           ),
         );
       }
-    } else if (showMarkers) {
+    } else if (showListMarkers) {
       children.add(
         TextSpan(
           text: theme.listBulletStyle?.prefix ?? theme.bulletGlyph,
